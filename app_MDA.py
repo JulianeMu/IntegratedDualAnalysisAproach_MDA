@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import datetime
 
@@ -40,7 +41,8 @@ id_data_type__date = "date"
 # merged_all = pd.read_csv("resources/Repro_FastSurfer_run-01_cleaned.csv", keep_default_na=False, na_values=[""])
 
 # synthetic
-merged_all = pd.read_csv("resources/synthetic_dates_missingness2.csv", keep_default_na=False, na_values=[""])
+print(os.getcwd())
+merged_all = pd.read_csv("E:\VizHiWi\GitHub Repository\IntegratedDualAnalysisAproach_MDA\\resources\synthetic-body-num.csv", keep_default_na=False, na_values=[""])
 
 merged_all = merged_all.loc[:, ~merged_all.columns.duplicated()]  # remove duplicate rows
 
