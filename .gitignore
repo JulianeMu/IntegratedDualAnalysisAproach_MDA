@@ -8,3 +8,6 @@
 /resources/Repro_FastSurfer_run-01_cleaned.csv
 /resources/Repro_FreeSurfer_run-01.csv
 /get_data_from_server.py
+
+*.pyc
+.idea/
