@@ -59,7 +59,7 @@ def create_obj_brain(image, outputpath, threshold):
 
     write_single_obj_file(filtered_vertices, remapped_faces, filtered_normals, outputpath+"\\brain.obj")
 
-    return [outputpath+"\\brain.obj"]
+    return ["brain.obj"]
 
 
 # create wmh mesh as OBJ
@@ -141,11 +141,48 @@ def write_multiple_obj_files(verts, faces, normals, outputfile):
                                                      x[2] in component, 1, faces)
         remapped_faces = remap(faces[filter_faces])  # apply the remap function to each face
         mesh = trimesh.Trimesh(vertices = filtered_verts, faces = remapped_faces, process = False)  # calc volume and stuff
-        df = df.append({'Filename': outputfile+f'_{i}.obj', 'Volume': mesh.volume}, ignore_index=True)
-
-        filenames.append(write_single_obj_file(filtered_verts,remapped_faces,filtered_normals,outputfile+f'_{i}.obj'))
+        filename = outputfile.split("\\")[-1]+f'_{i}.obj'
+        df = df.append({'Filename': filename, 'Volume': mesh.volume}, ignore_index=True)
+        write_single_obj_file(filtered_verts,remapped_faces,filtered_normals,outputfile+f'_{i}.obj')
+        filenames.append(filename)
     df.to_csv(outputfile+'_lesiondata.csv')
     return filenames
+
+
+# writes one OBJ per accumulated lesion load
+def write_multiple_obj_single_file(verts, faces, normals, outputfile):
+    # find connected components
+    outputfile = outputfile + ".obj"
+    edges = []
+    for face in faces:
+        edges.extend(list(itertools.combinations(face, 2)))
+    g = nx.from_edgelist(edges)
+
+    # compute connected components and print results
+    components = list(nx.algorithms.components.connected_components(g))
+
+    with open(outputfile, 'w') as thefile:
+        for item in verts:
+            thefile.write("v {0} {1} {2}\n".format(item[0],item[1],item[2]))
+
+        for i, component in enumerate(components):
+            filter = np.apply_along_axis(lambda x: x[0] in component and
+                                                   x[1] in component and
+                                                   x[2] in component, 1, faces)
+            vertex_filter = [v_idx in component for v_idx in range(verts.shape[0])]
+            filtered_normals = normals[vertex_filter]
+            filtered_faces = faces[filter] + 1
+            filtered_faces = filtered_faces[:, [0, 2, 1]]
+
+            thefile.write(f"o Component_{i}\n")
+
+            for item in filtered_normals:
+                thefile.write("vn {0} {1} {2}\n".format(item[0], item[1], item[2]))
+
+            for item in filtered_faces:
+                thefile.write("f {0}//{0} {1}//{1} {2}//{2}\n".format(item[0], item[1], item[2]))
+
+    return [outputfile.split("\\")[-1]]
 
 
 # add lesionmaps
@@ -162,33 +199,37 @@ def add_wmh(images, originalImage, outputpath):
         image[image == 2] = 0
         finalImage += image
 
+    mesh_files = create_layered_meshes(finalImage,outputpath)
+
     finalImageFile = sitk.GetImageFromArray(finalImage)
     finalImageFile.CopyInformation(originalImage)
     writer = sitk.ImageFileWriter()
-    writer.SetFileName(outputpath + "/add.nii.gz")
+    writer.SetFileName(outputpath + "/wmh.nii.gz")
     writer.Execute(finalImageFile)
 
-    create_colormap(int(np.max(images)), outputpath)
-    return outputpath + "/add.nii.gz", finalImage
+    mesh_files.append(create_colormap(int(np.max(images)), outputpath))
+    return outputpath + "/wmh.nii.gz", finalImage, mesh_files
 
 
-# creates colormap based on number of labelmaps
-def create_colormap(numentries,outputpath):
-    """
-    :param numentries: number of labelmaps
-    :param outputpath: outputpath
-    :return: filename
-    """
-    cmap = cm.get_cmap('OrRd', numentries)
-    samplingColors = cmap(np.linspace(0, 1, numentries))
-    print(samplingColors)
+def create_layered_meshes(image, outputpath):
+    filenames = []
+    image = image.transpose(2, 1, 0)
+    layers = np.unique(image)
+    for layer in layers:
+        if int(layer) == 0:
+            continue
+        layer_image = image == layer
+        layer_image = layer_image*1
+        verts, faces, normals, values = measure.marching_cubes(layer_image, 0.99)
+        spacing = np.array([1.2000000477, 0.9765999913, 3.0000000000])
+        verts = verts*spacing
+        verts[:, 1] = layer_image.shape[1] * spacing[1] - verts[:, 1]
+        #filenames.extend(write_multiple_obj_files(verts, faces, normals, outputpath + "\\add_wmh_" + str(int(layer))))
+        #filenames.extend(write_multiple_obj_single_file(verts, faces, normals, outputpath + "\\add_wmh_" + str(int(layer))))
+        write_single_obj_file(verts, faces, normals, outputpath + "\\add_wmh_" + str(int(layer))+".obj")
+        filenames.extend(["add_wmh_" + str(int(layer))+".obj"])
 
-    with open(outputpath+"/addcolortable.txt", "w") as f:
-        f.write("0 background 0 0 0 0\n")
-        for i in range(1, numentries):
-            f.write(str(i) + " wmh " + " ".join([str(math.floor(x*255)) for x in samplingColors[i]]) + "\n")
-
-    return outputpath+"/addcolortable.txt"
+    return filenames
 
 
 # subtract lesion maps
@@ -211,6 +252,24 @@ def sub_wmh(image1, image2, originalImage, outputpath):
     create_divergingcolormap(int(np.min(finalImage)), int(np.max(finalImage)), outputpath)
     return outputpath + "/sub.nii.gz", finalImage
 
+
+# creates colormap based on number of labelmaps
+def create_colormap(numentries,outputpath):
+    """
+    :param numentries: number of labelmaps
+    :param outputpath: outputpath
+    :return: filename
+    """
+    cmap = cm.get_cmap('OrRd', numentries)
+    samplingColors = cmap(np.linspace(0, 1, numentries))
+    print(samplingColors)
+
+    with open(outputpath+"/colortable.txt", "w") as f:
+        f.write("0 background 0 0 0 0\n")
+        for i in range(1, numentries):
+            f.write(str(i) + " wmh " + " ".join([str(math.floor(x*255)) for x in samplingColors[i]]) + "\n")
+
+    return "colortable.txt"
 
 # create diverging colormap based on number of labelmaps
 def create_divergingcolormap(minvalue, maxvalue, outputpath):

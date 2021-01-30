@@ -388,49 +388,76 @@ def add_headers(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     return response
 
-@app.route('/preprocess_NIFTI/', methods=["POST"])
-def preprocess_NIFTI():
-    inputDir = 'resources\\input'
-    outputDir = 'resources\\output'
+@app.route('/create_meshes_of_patient/<string:patientname>', methods=["POST"])
+def create_meshes_of_patient(patientname):
+    inputDir = os.path.join('resources\\input', patientname)
+    outputDir = os.path.join('resources\\output', patientname)
+    if not os.path.exists(outputDir):
+        os.mkdir(outputDir)
 
     filenames = []
 
     # load NIFTI volume data
     print("Process Volume Data")
-    flairImage = sitk.ReadImage(os.path.join(inputDir, 'FLAIR.nii.gz'))
-    filenames.extend(create_obj_brain(sitk.GetArrayFromImage(flairImage), outputDir, 800))
+    if not os.path.exists(os.path.join(outputDir, 'brain.obj')):
+        flairImage = sitk.ReadImage(os.path.join(inputDir, 'FLAIR.nii.gz'))
+        filenames.extend(create_obj_brain(sitk.GetArrayFromImage(flairImage), outputDir, 800))
+    else:
+        filenames.extend(["brain.obj"])
 
     # Load NIFTI labelmap
     print("Process Labelmap Data")
-    wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz' ))
-    filenames.extend(create_obj_wmh(sitk.GetArrayFromImage(wmhImage), outputDir))
+    if not os.path.exists(os.path.join(outputDir, 'multiple_wmh_0.obj')):
+        wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz'))
+        filenames.append(create_colormap(2,outputDir))
+        filenames.extend(create_obj_wmh(sitk.GetArrayFromImage(wmhImage), outputDir))
+    else:
+        filenames.extend(["colortable.txt"])
+        filenames.extend([x for x in os.listdir(outputDir) if x.startswith("multiple_wmh")])
 
-    """wmhImage1 = sitk.ReadImage(os.path.join('inputmultiple', 'wmh_100.nii.gz'))
-    wmhImage2 = sitk.ReadImage(os.path.join('inputmultiple', 'wmh_101.nii.gz'))
-    wmhImage3 = sitk.ReadImage(os.path.join('inputmultiple', 'wmh_102.nii.gz'))
-    wmhImage4 = sitk.ReadImage(os.path.join('inputmultiple', 'wmh_102.nii.gz'))
-    wmhImages = [sitk.GetArrayFromImage(wmhImage1), sitk.GetArrayFromImage(wmhImage2),
-                 sitk.GetArrayFromImage(wmhImage3), sitk.GetArrayFromImage(wmhImage4)]
-    #add_wmh(wmhImages, wmhImage1, outputDir)
-
-    wmhImageAdd = sitk.ReadImage(os.path.join('output', 'test.nii.gz'))
+    """wmhImageAdd = sitk.ReadImage(os.path.join('output', 'test.nii.gz'))
     sub_wmh(sitk.GetArrayFromImage(wmhImage1), sitk.GetArrayFromImage(wmhImageAdd), wmhImage1, outputDir)"""
 
     return jsonify(filenames)
 
-@app.route('/get_file_names/', methods=["POST"])
-def get_file_names():
-    return jsonify([os.listdir("resources\\input"), os.listdir("resources\\output")])
 
-@app.route('/get_mesh_file/<string:filename>', methods=["POST"])
-def get_mesh_file(filename):
+@app.route('/get_mesh_file/<string:patientname>/<string:filename>', methods=["POST"])
+def get_mesh_file(patientname,filename):
     print("get mesh file",filename)
-    return send_from_directory('resources\\output', filename)
+    return send_from_directory(os.path.join('resources\\output',patientname), filename)
 
-@app.route('/get_nifti_file/<string:filename>', methods=["POST"])
-def get_nifti_file(filename):
-    print("get nifti file", filename)
-    return send_from_directory('resources\\input', filename)
+@app.route('/get_volume_of_patient/<string:patientname>', methods=["POST"])
+def get_volume_of_patient(patientname):
+    print("get volume file", patientname)
+    return send_from_directory(os.path.join('resources\\input', patientname),'FLAIR.nii.gz')
+
+@app.route('/get_labelmap_of_patient/<string:patientname>', methods=["POST"])
+def get_labelmap_of_patient(patientname):
+    print("get labelmap file", patientname)
+    if patientname == "tmp":
+        return send_from_directory(os.path.join('resources\\output', patientname),'wmh.nii.gz')
+    return send_from_directory(os.path.join('resources\\input', patientname),'wmh.nii.gz')
+
+@app.route('/get_patients/', methods=["POST"])
+def get_patients():
+    patients = [name for name in os.listdir("resources\\input") if os.path.isdir(os.path.join("resources\\input", name))]
+    print(patients)
+    return jsonify(patients)
+
+@app.route('/add_patient_labelmaps/', methods=["POST"])
+def add_patient_labelmaps():
+    images = []
+    patients = request.get_json()["message"]
+    print(patients)
+    if len(patients) == 0:
+        return
+    if not os.path.exists(os.path.join('resources\\output','tmp')):
+        os.mkdir(os.path.join('resources\\output','tmp'))
+    for patient in patients:
+        patientImage = sitk.ReadImage(os.path.join('resources\\input', patient, 'wmh.nii.gz'))
+        images.append(sitk.GetArrayFromImage(patientImage))
+    [nifti_file, _, mesh_files] = add_wmh(images,patientImage, os.path.join('resources\\output','tmp'))
+    return jsonify([[nifti_file],mesh_files])
 
 if __name__ == '__main__':
     app.run(debug=True)

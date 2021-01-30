@@ -604,6 +604,8 @@ function parse(data) {
                 return v.name;
             });
             colortableParent.colortable.filedata = data['colortable']['filedata'];
+        } else {
+            colortableParent.e.xa = {"Ja": 0}
         }
         currentVolume = volume;
         // add the volume

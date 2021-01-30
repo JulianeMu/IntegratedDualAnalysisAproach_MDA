@@ -95,17 +95,16 @@
  </head>
  <body id='body' class='webgl_enabled' style="height:100%">
 
- <script type="text/javascript">
-     initialize_scene()
- </script>
-
  <div id="view" class="view_class" style="height:100%">
      <div id="left_view" style="width:50%; float:left">
          <div id="dimensions" class="dimensions_class"></div>
          <div id="items" class="items_class"></div>
          <div id="likelihood_of_correlation" class="likelihood_of_correlation_class"></div>
      </div>
-     <div id="right_view" style="width:50%; height:100%; float:left">
+     <div id="center_view" style="width:20%; height:100%; float:left">
+         test
+     </div>
+     <div id="right_view" style="width:30%; height:100%; float:left">
          <div id='3d' class='threeDRenderer' style="width:100%; height:66%;">
              <div id="colormap" style="position: absolute; left: 10px; bottom: 10px">
              </div>
@@ -181,6 +180,7 @@
 
         $(function () {
             initialize();
+            initialize_scene_tmpwmh();
         });
 
 </script>
