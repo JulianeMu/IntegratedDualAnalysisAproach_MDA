@@ -21,7 +21,6 @@ function setupGUIfy() {
         var dim = currentVolume.range;
 
         a = gui.Register([
-            // folders
             {
                 type: 'folder', label: 'Direct Vis',
                 open: true
@@ -30,14 +29,9 @@ function setupGUIfy() {
                 type: 'folder', label: 'Indirect Vis',
                 open: true
             },
-            //
-            {
-                type: 'checkbox', label: 'Toggle Brain',
-                onChange: toggleMeshVisibility,
-                folder: 'Indirect Vis'
-            },
             {
                 type: 'checkbox', label: 'Toggle WMH',
+                initial: true,
                 onChange: toggleMeshlabelmapVisibility,
                 folder: 'Indirect Vis'
             },
@@ -49,41 +43,21 @@ function setupGUIfy() {
             },
             {
                 type: 'checkbox', label: 'Toggle Lesions',
+                initial: true,
                 onChange: switchLabelmapVisibility,
                 folder: 'Direct Vis'
             },
-            /*{
-                type: 'select', label: 'Labelmap',
-                options: _data.labelmap.file,
-                onChange: switchToLabelmap
-            },
-            {
-                type: 'range', label: 'Ax',
-                min: 0, max: dim[2] - 1, step: 1, scale: 'linear',
-                onChange: volumeslicingAxUI,
-                folder: 'Slices'
-            },
-            {
-                type: 'range', label: 'Sag',
-                min: 0, max: dim[0] - 1, step: 1, scale: 'linear',
-                onChange: volumeslicingSagUI,
-                folder: 'Slices'
-            },
-            {
-                type: 'range', label: 'Cor',
-                min: 0, max: dim[1] - 1, step: 1, scale: 'linear',
-                onChange: volumeslicingCorUI,
-                folder: 'Slices'
-            },*/
             {
                 type: 'range', label: 'Opacity',
                 min: 0, max: 100, step: 1, scale: 'linear',
+                initial: 100,
                 onChange: opacity3dVolume,
                 folder: 'Direct Vis'
             },
             {
                 type: 'interval', label: 'DVR_threshold',
                 min: volume.min, max: volume.max,
+                initial: [200, volume.max],
                 onChange: thresholdVolume,
                 folder: 'Direct Vis'
             },
@@ -96,13 +70,8 @@ function setupGUIfy() {
             {
                 type: 'range', label: 'Opacity Brain',
                 min: 0, max: 100, step: 1, scale: 'linear',
+                initial: 100,
                 onChange: opacityMesh,
-                folder: 'Indirect Vis'
-            },
-            {
-                type: 'range', label: 'Opacity WMH',
-                min: 0, max: 100, step: 1, scale: 'linear',
-                onChange: opacityMeshlabelmap,
                 folder: 'Indirect Vis'
             }
         ]);

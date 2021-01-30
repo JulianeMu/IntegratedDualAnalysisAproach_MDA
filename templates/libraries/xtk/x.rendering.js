@@ -394,6 +394,8 @@ function createData() {
         currentVolume = null;
         previousVolume = null;
         guiLoaded = false;
+        updated_volume = false;
+        updated_labelmap = false;
     }
 
 }
@@ -408,6 +410,9 @@ function read(files) {
   // show share button
   $('#share').show();
 
+  // number of total files
+  var _numberOfFiles = files.length;
+
   for ( var i = 0; i < files.length; i++) {
 
    var f = files[i];
@@ -416,10 +421,8 @@ function read(files) {
 
    // check for files with no extension
    if (_fileExtension == _fileName.toUpperCase()) {
-
      // this must be dicom
      _fileExtension = 'DCM';
-
    }
 
    var _fileSize = f.size;
@@ -427,9 +430,11 @@ function read(files) {
    // check which type of file it is
    if (_data['volume']['extensions'].indexOf(_fileExtension) >= 0) {
        if (_fileName.toString().includes("wmh")){
+           updated_labelmap = true;
            _data['labelmap']['file'].push(f);
            _data['labelmap']['loaded'].push(false);
        } else {
+           updated_volume = true;
            _data['volume']['file'].push(f);
            _data['volume']['loaded'].push(false);
        }
@@ -461,6 +466,9 @@ function read(files) {
      _data['fibers']['file'].push(f);
      _data['fibers']['loaded'].push(false);
 
+   } else {
+       console.log(_fileName);
+       _numberOfFiles -= 1;
    }
 
   }
@@ -470,8 +478,6 @@ function read(files) {
 
   var _types = Object.keys(_data);
 
-  // number of total files
-  var _numberOfFiles = files.length;
   var _numberRead = 0;
   window.console.log('Total new files:', _numberOfFiles);
 
@@ -503,9 +509,7 @@ function read(files) {
 
        // all done, start the parsing
        parse(_data);
-
      }
-
    };
   };
 
@@ -516,7 +520,6 @@ function read(files) {
   _types.forEach(function(v) {
 
    if (_data[v]['file'].length > 0) {
-
      _data[v]['file'].forEach(function(u, i) {
          if (_data[v]['loaded'][i] === true) return;
          _data[v]['loaded'][i] = true;
@@ -526,189 +529,205 @@ function read(files) {
        reader.onload = (loadHandler)(v,u); // bind the current type
 
        if (u.name.toLowerCase().endsWith('tko')) {
-
         // Trako Yay!!
         reader.readAsText(u);
 
        } else {
-
+           if (v === 'colortable') {
+               var colortable_reader = new FileReader();
+               colortable_reader.onload = preprocess_colortable;
+               colortable_reader.readAsText(u);
+           }
          // start reading this file
          reader.readAsArrayBuffer(u);
-
        }
-
-
      });
-
    }
-
   });
-
 };
+
+function preprocess_colortable(event) {
+    data = event.target.result;
+    colors = [];
+    tick_values = [];
+    legend_title = "";
+    data.split("\n").forEach((line)=>{
+        values = line.split(" ");
+        if(line[0] === "#") {
+            legend_title = line.replace('#','');
+        }
+        if (line.length > 0 && parseInt(values[5]) !== 0 && line[0] !=='#') {
+            tick_values.push(parseInt(values[0]));
+            colors.push(d3.rgb(parseInt(values[2]), parseInt(values[3]), parseInt(values[4]), parseInt(values[5])));
+        }
+    })
+    legend({
+        color: d3.scaleOrdinal(tick_values, colors),
+        title: legend_title,
+        height: 50,
+        tickValues: tick_values,
+        tickSize: 0
+    })
+}
 
 //
 // Parse file data and setup X.objects
 //
 function parse(data) {
 
-  // initialize renderers
-  initializeRenderers();
+    // initialize renderers
+    initializeRenderers();
 
-  //window.console.time('Loadtime');
+    //window.console.time('Loadtime');
+    if (updated_volume) {
+        volume = new X.volume();
+        volume.pickable = false;
+        volume.file = data['volume']['file'].map(function (v) {
+            return v.name;
+        });
+        volume.filedata = data['volume']['filedata'];
+        var colortableParent = volume;
 
-  // check for special case if a volume, a labelmap and a colortable was dropped
-  if (data['volume']['file'].length == 2 && data['colortable']['file'].length == 1) {
-      console.log("volume + labelmap + colortable");
+        if (updated_labelmap) {
+            // we have a label map
+            volume.labelmap.file = data['labelmap']['file'][data['labelmap']['file'].length-1].name
+            volume.labelmap.filedata = data['labelmap']['filedata'][data['labelmap']['file'].length-1];
+            colortableParent = volume.labelmap;
+            volume.labelmap.visible = true;
+            volume.labelmap.opacity = 1.0;
+            data['labelmap']['volumes'].push(volume);
+        }
 
-    // we assume the smaller volume is a labelmap
-    var _smaller_volume = data['volume']['file'][0];
-    var _smaller_data = data['volume']['filedata'][0];
-    if (_smaller_volume.size < data['volume']['file'][1]) {
-
-      // this is the smaller volume so configure it as a labelmap
-      data['labelmap']['file'].push(_smaller_volume);
-      data['labelmap']['filedata'].push(_smaller_data);
-      data['volume']['file'].shift();
-      data['volume']['filedata'].shift();
-
+        if (data['colortable']['file'].length > 0) {
+            // we have a color table
+            colortableParent.colortable.file = data['colortable']['file'].map(function (v) {
+                return v.name;
+            });
+            colortableParent.colortable.filedata = data['colortable']['filedata'];
+        }
+        currentVolume = volume;
+        // add the volume
+        ren3d.add(volume);
     } else {
+        if (_data.updated_labelmap) {
+            for (let i = 0; i < data['labelmap']['file'].length; i++) {
+                if (data['labelmap']["volumes"].length - 1 >= i)
+                    continue;
 
-      // we swap them and configure the second one as a labelmap
-      _smaller_volume = data['volume']['file'][1];
-      _smaller_data = data['volume']['filedata'][1];
-      data['labelmap']['file'].push(_smaller_volume);
-      data['labelmap']['filedata'].push(_smaller_data);
-      data['volume']['file'].pop();
-      data['volume']['filedata'].pop();
+                let labeledVolume = new X.volume();
 
+                // load the most current volume file (only one should exist)
+                labeledVolume.file = data['volume']['file'][data['volume']['file'].length - 1].name
+                labeledVolume.filedata = data['volume']['filedata'][data['volume']['filedata'].length - 1];
+
+                // load the labelmap from the new file
+                labeledVolume.labelmap.file = data['labelmap']['file'][i].name;
+                labeledVolume.labelmap.filedata = data['labelmap']['filedata'][i];
+
+                labeledVolume.labelmap.visible = true;
+                labeledVolume.labelmap.opacity = 1.0;
+                data.labelmap.volumes.push(labeledVolume);
+
+                // possibly apply a colortable
+                //updateLabelmapUI();
+                if (data['colortable']['file'].length > 0) {
+                    // we have a color table
+                    labeledVolume.labelmap.colortable.file = data['colortable']['file'][data['colortable']['file'].length - 1].name
+                    labeledVolume.labelmap.colortable.filedata = data['colortable']['filedata'][data['colortable']['filedata'].length - 1];
+                } else {
+                    labeledVolume.e.xa = {"Ja": 0}
+                }
+                // switch to the current labelmap, that we just created
+                switchToLabelmap(data.labelmap.volumes.length - 1);
+            }
+        }
     }
+    /*if (data['volume']['file'].length > 0) {
+        if (typeof volume == "undefined"){
+            // we have a volume
+            volume = new X.volume();
+            volume.pickable = false;
+            volume.file = data['volume']['file'].map(function(v) {
+                return v.name;
+            });
+            volume.filedata = data['volume']['filedata'];
+            var colortableParent = volume;
 
-  }
+            if (data['labelmap']['file'].length > 0) {
+                // we have a label map
+                volume.labelmap.file = data['labelmap']['file'].map(function(v) {
+                    return v.name;
+                });
+                volume.labelmap.filedata = data['labelmap']['filedata'];
+                colortableParent = volume.labelmap;
+                volume.labelmap.visible = false;
+                volume.labelmap.opacity = 1.0;
+            }
 
-  if (data['volume']['file'].length > 0) {
+            if (data['colortable']['file'].length > 0) {
+                // we have a color table
+                colortableParent.colortable.file = data['colortable']['file'].map(function(v) {
+                    return v.name;
+                });
+                colortableParent.colortable.filedata = data['colortable']['filedata'];
+            }
+            currentVolume = volume;
+            // add the volume
+            ren3d.add(volume);
+        } */
+/*else
+    {
+        if (data['labelmap']['file'].length > 0) {
+            for (let i = 0; i < data['labelmap']['file'].length; i++) {
+                if (data['labelmap']["volumes"].length - 1 >= i)
+                    continue;
 
-      if (typeof volume == "undefined"){
-          // we have a volume
-          volume = new X.volume();
-          volume.pickable = false;
-          volume.file = data['volume']['file'].map(function(v) {
+                let labeledVolume = new X.volume();
 
-              return v.name;
+                // load the most current volume file (only one should exist)
+                labeledVolume.file = data['volume']['file'].map(function (v) {
+                    return v.name;
+                });
+                labeledVolume.filedata = data['volume']['filedata'];
 
-          });
-          volume.filedata = data['volume']['filedata'];
-          var colortableParent = volume;
+                // load the labelmap from the new file
+                labeledVolume.labelmap.file = data['labelmap']['file'][i].name;
+                labeledVolume.labelmap.filedata = data['labelmap']['filedata'][i];
 
-          if (data['labelmap']['file'].length > 0) {
+                labeledVolume.labelmap.visible = true;
+                labeledVolume.labelmap.opacity = 1.0;
+                data.labelmap.volumes.push(labeledVolume);
 
-              // we have a label map
-              volume.labelmap.file = data['labelmap']['file'].map(function(v) {
+                // possibly apply a colortable
+                //labeledVolume.labelmap.colortable.file = 'http://x.babymri.org/?genericanatomy.txt';
+                //updateLabelmapUI();
+                if (data['colortable']['file'].length > 0) {
 
-                  return v.name;
+                    // we have a color table
+                    labeledVolume.labelmap.colortable.file = data['colortable']['file'].map(function (v) {
 
-              });
-              volume.labelmap.filedata = data['labelmap']['filedata'];
-              colortableParent = volume.labelmap;
-              volume.labelmap.visible = false;
-              volume.labelmap.opacity = 1.0;
+                        return v.name;
 
-          }
+                    });
+                    //labeledVolume.colortable.file = data['colortable']['file'].map(function(v) {
+                    // return v.name;
+                    //});
+                    labeledVolume.labelmap.colortable.filedata = data['colortable']['filedata'];
+                    //labeledVolume.colortable.filedata = data['colortable']['filedata'];
 
-          // add callbacks for computing
-          volume.onComputing = function(direction) {
-              //console.log('computing', direction);
-          }
-
-          volume.onComputingProgress = function(value) {
-              //console.log(value);
-          }
-
-          volume.onComputingEnd = function(direction) {
-              //console.log('computing end', direction);
-          }
-
-          /*if (data['colortable']['file'].length > 0) {
-
-              // we have a color table
-              colortableParent.colortable.file = data['colortable']['file'].map(function(v) {
-
-                  return v.name;
-
-              });
-              colortableParent.colortable.filedata = data['colortable']['filedata'];
-
-          }*/
-          currentVolume = volume;
-
-          /*
-          // if volume data exists
-          if(typeof mesh != "undefined" || mesh !== null) {
-              mesh.transform.translateX(currentVolume.bbox[0]);
-              mesh.transform.translateY(currentVolume.bbox[2]);
-              mesh.transform.translateZ(currentVolume.bbox[4]);
-              console.log("mesh translate");
-          }*/
-
-          // add the volume
-          ren3d.add(volume);
-      } else {
-          if (data['labelmap']['file'].length > 0) {
-              for (let i = 0; i < data['labelmap']['file'].length; i++){
-                  if (data['labelmap']["volumes"].length - 1 >= i)
-                      continue;
-
-                  let labeledVolume = new X.volume();
-
-                  // load the most current volume file (only one should exist)
-                  labeledVolume.file = data['volume']['file'].map(function(v) {
-                      return v.name;
-                  });
-                  labeledVolume.filedata = data['volume']['filedata'];
-
-                  // load the labelmap from the new file
-                  labeledVolume.labelmap.file =  data['labelmap']['file'][i].name;
-                  labeledVolume.labelmap.filedata = data['labelmap']['filedata'][i];
-
-                  labeledVolume.labelmap.visible = true;
-                  labeledVolume.labelmap.opacity = 1.0;
-                  data.labelmap.volumes.push(labeledVolume);
-
-                  // possibly apply a colortable
-                      //labeledVolume.labelmap.colortable.file = 'http://x.babymri.org/?genericanatomy.txt';
-                  //updateLabelmapUI();
-                  if (data['colortable']['file'].length > 0) {
-
-                      // we have a color table
-                      labeledVolume.labelmap.colortable.file = data['colortable']['file'].map(function(v) {
-
-                          return v.name;
-
-                      });
-                      //labeledVolume.colortable.file = data['colortable']['file'].map(function(v) {
-
-                         // return v.name;
-
-                      //});
-                      labeledVolume.labelmap.colortable.filedata = data['colortable']['filedata'];
-                      //labeledVolume.colortable.filedata = data['colortable']['filedata'];
-
-                  } else {
-                      labeledVolume.e.xa  = {"Ja": 0}
-                  }
-
-                  // switch to the current labelmap, that we just created
-                  switchToLabelmap(data.labelmap.volumes.length-1);
-              }
-          }
-      }
-  }
-
+                } else {
+                    labeledVolume.e.xa = {"Ja": 0}
+                }
+                // switch to the current labelmap, that we just created
+                switchToLabelmap(data.labelmap.volumes.length - 1);
+            }
+        }
+    }*/
   if (data['mesh']['file'].length > 0) {
 
       for (let i = 0; i < data['mesh']['file'].length; i++){
           if (data['mesh']["meshes"].length - 1 >= i)
             continue;
-
 
               // we have a mesh
           mesh = new X.mesh();
@@ -718,7 +737,6 @@ function parse(data) {
           mesh.filedata = data['mesh']['filedata'][i];
           mesh.color = [1, 1, 1];
 
-
           if (data['scalars']['file'].length > 0) {
 
               // we have scalars
@@ -726,7 +744,6 @@ function parse(data) {
                   return v.name;
               });
               mesh.scalars.filedata = data['scalars']['filedata'];
-
           }
           data.mesh.meshes.push(mesh);
 
@@ -787,6 +804,10 @@ function parse(data) {
     fibers = xtk_tr.parse(tko_json);
 
    }
+
+/*  if (data['colortable']['file'].length > 0) {
+      console.log(data['colortable']['filedata'][0]);
+  }*/
 
    // add the fibers
    ren3d.add(fibers);

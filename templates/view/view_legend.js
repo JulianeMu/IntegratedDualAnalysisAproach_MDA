@@ -23,12 +23,18 @@ function legend({
                     tickValues
                 } = {}) {
 
-    const svg = d3.select("#colormap").append("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .attr("viewBox", [0, 0, width, height])
-        .style("overflow", "visible")
-        .style("display", "block");
+    if (typeof svg === "undefined")
+    {
+        svg = d3.select("#colormap").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .attr("viewBox", [0, 0, width, height])
+            .style("overflow", "visible")
+            .style("display", "block");
+    } else {
+        svg.selectAll("*").remove();
+    }
+
 
     let tickAdjust = g => g.selectAll(".tick line").attr("y1", marginTop + marginBottom - height);
     let x;
@@ -135,12 +141,13 @@ function legend({
         .call(g => g.append("text")
             .attr("x", marginLeft)
             .attr("y", marginTop + marginBottom - height - 6)
-            .attr("fill", "currentColor")
+            .attr("fill", 'white')
             .attr("text-anchor", "start")
             .attr("font-weight", "bold")
             .attr("class", "title")
             .text(title));
 
+    svg.selectAll("text").attr("fill", "white")
     return svg.node();
 }
 

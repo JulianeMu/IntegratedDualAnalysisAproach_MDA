@@ -1,13 +1,16 @@
 import json
 import time
 from datetime import datetime
+import base64
+import gzip
 
 import jsonpickle
 import numpy
 import pandas as pd
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from joblib import Parallel, delayed
 import multiprocessing
+import io
 
 import compute_descriptive_statistics_MDA as cds
 import global_variables as gv
@@ -16,6 +19,10 @@ try:
 except ImportError:
     pass
 from collections import namedtuple
+
+from templates.model.model_nifti_to_mesh import *
+import os
+import SimpleITK as sitk
 
 start_time = time.time()
 
@@ -370,7 +377,7 @@ def comp_deviations(request_data_list):
     return jsonify(transform([data_initially_formatted_new, gv.columns_not_contributing]))
 
 
-@app.route('/')
+@app.route('/', methods=["GET", "POST"])
 def hello():
     return "Hello World!"
 
@@ -381,6 +388,49 @@ def add_headers(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     return response
 
+@app.route('/preprocess_NIFTI/', methods=["POST"])
+def preprocess_NIFTI():
+    inputDir = 'resources\\input'
+    outputDir = 'resources\\output'
+
+    filenames = []
+
+    # load NIFTI volume data
+    print("Process Volume Data")
+    flairImage = sitk.ReadImage(os.path.join(inputDir, 'FLAIR.nii.gz'))
+    filenames.extend(create_obj_brain(sitk.GetArrayFromImage(flairImage), outputDir, 800))
+
+    # Load NIFTI labelmap
+    print("Process Labelmap Data")
+    wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz' ))
+    filenames.extend(create_obj_wmh(sitk.GetArrayFromImage(wmhImage), outputDir))
+
+    """wmhImage1 = sitk.ReadImage(os.path.join('inputmultiple', 'wmh_100.nii.gz'))
+    wmhImage2 = sitk.ReadImage(os.path.join('inputmultiple', 'wmh_101.nii.gz'))
+    wmhImage3 = sitk.ReadImage(os.path.join('inputmultiple', 'wmh_102.nii.gz'))
+    wmhImage4 = sitk.ReadImage(os.path.join('inputmultiple', 'wmh_102.nii.gz'))
+    wmhImages = [sitk.GetArrayFromImage(wmhImage1), sitk.GetArrayFromImage(wmhImage2),
+                 sitk.GetArrayFromImage(wmhImage3), sitk.GetArrayFromImage(wmhImage4)]
+    #add_wmh(wmhImages, wmhImage1, outputDir)
+
+    wmhImageAdd = sitk.ReadImage(os.path.join('output', 'test.nii.gz'))
+    sub_wmh(sitk.GetArrayFromImage(wmhImage1), sitk.GetArrayFromImage(wmhImageAdd), wmhImage1, outputDir)"""
+
+    return jsonify(filenames)
+
+@app.route('/get_file_names/', methods=["POST"])
+def get_file_names():
+    return jsonify([os.listdir("resources\\input"), os.listdir("resources\\output")])
+
+@app.route('/get_mesh_file/<string:filename>', methods=["POST"])
+def get_mesh_file(filename):
+    print("get mesh file",filename)
+    return send_from_directory('resources\\output', filename)
+
+@app.route('/get_nifti_file/<string:filename>', methods=["POST"])
+def get_nifti_file(filename):
+    print("get nifti file", filename)
+    return send_from_directory('resources\\input', filename)
 
 if __name__ == '__main__':
     app.run(debug=True)
