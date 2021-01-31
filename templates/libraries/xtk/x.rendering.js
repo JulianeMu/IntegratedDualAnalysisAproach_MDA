@@ -61,15 +61,29 @@ function initializeRenderers(){
 
     jQuery(document.body).addClass('webgl_enabled');
 
+    selected_elements = {};
     // clickable stuff
-      $(ren3d.sa).mousemove(function(e) {
+      $(ren3d.sa).click(function(e) {
           var pos = findPos(this);
           var x = e.pageX - pos.x;
           var y = e.pageY - pos.y;
           var coord = "x=" + x + ", y=" + y;
           var c = this.getContext('2d');
-          if (ren3d.pick(x,y) in _data.meshlabelmap.dictionary) {
-              console.log(x, y, ren3d.pick(x,y), _data.meshlabelmap.dictionary[ren3d.pick(x,y)]);
+          var mesh_id = ren3d.pick(x,y);
+          if (mesh_id in _data.meshlabelmap.dictionary) {
+              console.log(x, y, mesh_id, _data.meshlabelmap.dictionary[mesh_id]);
+              if (mesh_id in selected_elements){
+                  destroyTooltip(mesh_id);
+                  for ( x in selected_elements) {
+                      selected_elements[x].tippyInstance.show();
+                  }
+              } else {
+                  createTooltip(x,y,mesh_id);
+              }
+          } else {
+              for ( x in selected_elements) {
+                  destroyTooltip(x);
+              }
           }
       });
       $(ren3d.sa).ready(function(){
@@ -943,4 +957,44 @@ function onTouchEnd(rend,container) {
   }
 
 };
+
+// Tooltips
+function createTooltip(x,y,mesh_id){
+    var mesh_name = _data.meshlabelmap.dictionary[mesh_id];
+    var fake_div = document.createElement("div");
+    fake_div.style.position = "absolute";
+    fake_div.style.left = x+"px";
+    fake_div.style.top = y+"px";
+    fake_div.id = "tooltipTarget"+mesh_id;
+    $("#3d").append(fake_div);
+
+    var tippy_instance = tippy("#tooltipTarget"+mesh_id,{
+        content: mesh_name,
+        zIndex: 9999,
+        trigger: "manual",
+        sticky: true,
+        offset: [0,-5]
+    });
+
+    var selected_mesh = ren3d.get(mesh_id);
+    selected_elements[mesh_id] = {
+        originalColor: selected_mesh.color,
+        fakeDiv: fake_div,
+        tippyInstance: tippy_instance[0],
+        selectedMesh: selected_mesh
+    }
+
+    selected_mesh.color = [0,1,1];
+    //tippy_instance[0].show();
+    for ( x in selected_elements) {
+        selected_elements[x].tippyInstance.show();
+    }
+}
+
+function destroyTooltip(mesh_id){
+    selected_elements[mesh_id].selectedMesh.color = selected_elements[mesh_id].originalColor;
+    selected_elements[mesh_id].tippyInstance.destroy();
+    selected_elements[mesh_id].fakeDiv.remove();
+    delete selected_elements[mesh_id];
+}
 
