@@ -61,6 +61,46 @@ function initializeRenderers(){
 
     jQuery(document.body).addClass('webgl_enabled');
 
+    hovered_element = {};
+      $(ren3d.sa).mousemove(function(e) {
+          var pos = findPos(this);
+          var x = e.pageX - pos.x;
+          var y = e.pageY - pos.y;
+          var coord = "x=" + x + ", y=" + y;
+          var c = this.getContext('2d');
+          var mesh_id = ren3d.pick(x,y);
+          if (mesh_id in _data.meshlabelmap.dictionary) {
+              console.log(x, y, mesh_id, _data.meshlabelmap.dictionary[mesh_id]);
+              if (mesh_id in hovered_element) {
+                  // do nothing :)
+              } else {
+                  for (x in hovered_element) {
+                      if (x !== mesh_id) {
+                          hovered_element[x].mesh.color = hovered_element[x].originalColor;
+                      }
+                  }
+                  hovered_element = {};
+
+                  var mesh = ren3d.get(mesh_id);
+                  hovered_element[mesh_id] = {
+                      //originalColor: mesh.color,
+                      originalColor: ((mesh_id in selected_elements) ? selected_elements[mesh_id].originalColor : mesh.color),
+                      mesh: mesh
+                  }
+                  mesh.color = hovered_color;
+              }
+          } else {
+              for (x in hovered_element) {
+                  if (x in selected_elements) {
+                      hovered_element[x].mesh.color = selected_color;
+                  } else {
+                      hovered_element[x].mesh.color = hovered_element[x].originalColor;
+                  }
+              }
+              hovered_element = {};
+          }
+      });
+
     selected_elements = {};
     // clickable stuff
       $(ren3d.sa).click(function(e) {
@@ -74,6 +114,9 @@ function initializeRenderers(){
               console.log(x, y, mesh_id, _data.meshlabelmap.dictionary[mesh_id]);
               if (mesh_id in selected_elements){
                   destroyTooltip(mesh_id);
+                  if (x in hovered_element) {
+                      hovered_element[x].mesh.color = hovered_color;
+                  }
                   for ( x in selected_elements) {
                       selected_elements[x].tippyInstance.show();
                   }
@@ -417,6 +460,8 @@ function createData() {
         guiLoaded = false;
         updated_volume = false;
         updated_labelmap = false;
+        selected_color = [0,1,1];
+        hovered_color = [1,1,1];
     }
 
 }
@@ -853,7 +898,7 @@ function parse(data) {
             for (line in lines) {
                 //var values = line.split(",")
                 var values = lines[line].split(",")
-                console.log(parseInt(values[0]),values[1],parseFloat(values[2]))
+                //console.log(parseInt(values[0]),values[1],parseFloat(values[2]))
                 metadata[values[1]] = {
                     volume: parseFloat(values[2])
                 }
@@ -1012,13 +1057,13 @@ function createTooltip(x,y,mesh_id){
 
     var selected_mesh = ren3d.get(mesh_id);
     selected_elements[mesh_id] = {
-        originalColor: selected_mesh.color,
+        originalColor: ((mesh_id in hovered_element) ? hovered_element[mesh_id].originalColor : selected_mesh.color),
         fakeDiv: fake_div,
         tippyInstance: tippy_instance[0],
         selectedMesh: selected_mesh
     }
 
-    selected_mesh.color = [0,1,1];
+    selected_mesh.color = selected_color;
     //tippy_instance[0].show();
     for ( x in selected_elements) {
         selected_elements[x].tippyInstance.show();
