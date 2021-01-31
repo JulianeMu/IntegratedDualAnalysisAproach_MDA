@@ -403,7 +403,14 @@ function createData() {
                'loaded' : [],
              'filedata': [],
              'extensions': ['TRK', 'TKO']
-           }
+           },
+          'lesionmetadata': {
+              'file': [],
+              'loaded' : [],
+              'filedata': [],
+              'extensions': ['CSV'],
+              'metadata' : []
+          }
           };
         currentVolume = null;
         previousVolume = null;
@@ -480,6 +487,12 @@ function read(files) {
      _data['fibers']['file'].push(f);
      _data['fibers']['loaded'].push(false);
 
+   } else if (_data['lesionmetadata']['extensions'].indexOf(_fileExtension) >= 0) {
+
+       // this is a fibers file
+       _data['lesionmetadata']['file'].push(f);
+       _data['lesionmetadata']['loaded'].push(false);
+
    } else {
        console.log(_fileName);
        _numberOfFiles -= 1;
@@ -542,7 +555,7 @@ function read(files) {
        reader.onerror = errorHandler;
        reader.onload = (loadHandler)(v,u); // bind the current type
 
-       if (u.name.toLowerCase().endsWith('tko')) {
+       if (u.name.toLowerCase().endsWith('tko') || u.name.toLowerCase().endsWith('csv')) {
         // Trako Yay!!
         reader.readAsText(u);
 
@@ -830,6 +843,25 @@ function parse(data) {
 
   }
 
+    if (data['lesionmetadata']['file'].length > 0) {
+
+        for (let i = 0; i < data['lesionmetadata']['file'].length; i++){
+            if (data['lesionmetadata']["metadata"].length - 1 >= i)
+                continue;
+            var lines = data.lesionmetadata.filedata[i].split("\n")
+            var metadata = {}
+            for (line in lines) {
+                //var values = line.split(",")
+                var values = lines[line].split(",")
+                console.log(parseInt(values[0]),values[1],parseFloat(values[2]))
+                metadata[values[1]] = {
+                    volume: parseFloat(values[2])
+                }
+            }
+            data["lesionmetadata"]["metadata"].push(metadata)
+        }
+    }
+
   if (currentVolume !== null || typeof mesh !== "undefined"){
       ren3d.camera.position = [0,370,0];
       ren3d.render();
@@ -969,10 +1001,12 @@ function createTooltip(x,y,mesh_id){
     $("#3d").append(fake_div);
 
     var tippy_instance = tippy("#tooltipTarget"+mesh_id,{
-        content: mesh_name,
+        content: "<strong>Name:</strong> "+mesh_name+"<br>"+
+            "<strong>Volume:</strong> "+_data["lesionmetadata"]["metadata"][_data["lesionmetadata"]["metadata"].length-1][mesh_name].volume.toFixed(4),
         zIndex: 9999,
         trigger: "manual",
         sticky: true,
+        allowHTML: true,
         offset: [0,-5]
     });
 

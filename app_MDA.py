@@ -414,6 +414,7 @@ def create_meshes_of_patient(patientname):
     else:
         filenames.extend(["colortable.txt"])
         filenames.extend([x for x in os.listdir(outputDir) if x.startswith("multiple_wmh")])
+        filenames.extend(["multiple_wmh_lesiondata.csv"])
 
     """wmhImageAdd = sitk.ReadImage(os.path.join('output', 'test.nii.gz'))
     sub_wmh(sitk.GetArrayFromImage(wmhImage1), sitk.GetArrayFromImage(wmhImageAdd), wmhImage1, outputDir)"""

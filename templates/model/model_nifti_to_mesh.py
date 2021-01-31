@@ -146,6 +146,7 @@ def write_multiple_obj_files(verts, faces, normals, outputfile):
         write_single_obj_file(filtered_verts,remapped_faces,filtered_normals,outputfile+f'_{i}.obj')
         filenames.append(filename)
     df.to_csv(outputfile+'_lesiondata.csv')
+    filenames.append(outputfile.split("\\")[-1]+'_lesiondata.csv')
     return filenames
 
 
