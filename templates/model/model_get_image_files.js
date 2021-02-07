@@ -14,7 +14,7 @@ function initialize_scene(callback) {
             type: "POST",
             contentType: "application/json",
         }).done(function (meshfilenames){
-            var total_files = meshfilenames.length+2
+            var total_files = meshfilenames.length+2 //volume and combinedlabelmap
             var loaded_files = []
 
             // NIFTI Volume
@@ -34,22 +34,39 @@ function initialize_scene(callback) {
             xhr.responseType = 'blob';
             xhr.send();
 
-            // NIFTI WMH
+            // NIFTI combined
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function(){
                 if (this.readyState == 4 && this.status == 200){
                     //this.response is what you're looking for
                     b = new Blob([this.response])
-                    f = new File([b], 'wmh.nii.gz')
+                    f = new File([b], 'combined.nii.gz')
                     loaded_files.push(f)
                     if (loaded_files.length === total_files){
                         read(loaded_files)
                     }
                 }
             }
-            xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/"+patientnames[0], true);
+            xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/"+patientnames[0]+'/combined', true);
             xhr.responseType = 'blob';
             xhr.send();
+
+            // NIFTI CMB
+            /*var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function(){
+                if (this.readyState == 4 && this.status == 200){
+                    //this.response is what you're looking for
+                    b = new Blob([this.response])
+                    f = new File([b], 'cmb.nii.gz')
+                    loaded_files.push(f)
+                    if (loaded_files.length === total_files){
+                        read(loaded_files)
+                    }
+                }
+            }
+            xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/"+patientnames[0]+'/cmb', true);
+            xhr.responseType = 'blob';
+            xhr.send();*/
 
             // MESH
             meshfilenames.forEach(function (filename) {

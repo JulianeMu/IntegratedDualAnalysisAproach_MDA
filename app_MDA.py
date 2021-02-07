@@ -23,6 +23,7 @@ from collections import namedtuple
 from templates.model.model_nifti_to_mesh import *
 import os
 import SimpleITK as sitk
+import logging
 
 start_time = time.time()
 
@@ -393,28 +394,64 @@ def create_meshes_of_patient(patientname):
     inputDir = os.path.join('resources\\input', patientname)
     outputDir = os.path.join('resources\\output', patientname)
     if not os.path.exists(outputDir):
-        os.mkdir(outputDir)
+        os.makedirs(outputDir)
 
     filenames = []
 
     # load NIFTI volume data
-    print("Process Volume Data")
+    logging.debug("Process Volume Data")
+    flairImage = sitk.ReadImage(os.path.join(inputDir, 'FLAIR.nii.gz'))
+    volume_size = sitk.GetArrayFromImage(flairImage).shape
     if not os.path.exists(os.path.join(outputDir, 'brain.obj')):
-        flairImage = sitk.ReadImage(os.path.join(inputDir, 'FLAIR.nii.gz'))
         filenames.extend(create_obj_brain(sitk.GetArrayFromImage(flairImage), outputDir, 800))
     else:
         filenames.extend(["brain.obj"])
 
     # Load NIFTI labelmap
-    print("Process Labelmap Data")
-    if not os.path.exists(os.path.join(outputDir, 'multiple_wmh_0.obj')):
-        wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz'))
-        filenames.append(create_colormap(2,outputDir))
-        filenames.extend(create_obj_wmh(sitk.GetArrayFromImage(wmhImage), outputDir))
+    logging.debug("Process Labelmap Data")
+    if not os.path.exists(os.path.join(outputDir, 'combinedcolortable.txt')):
+        if os.path.exists(os.path.join(inputDir,"wmh.nii.gz")):
+            wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz'))
+            #filenames.append(create_colormap(2,outputDir))
+            wmh_mat = sitk.GetArrayFromImage(wmhImage)
+            filenames.extend(create_obj_lesions(wmh_mat, outputDir, "wmh"))
+        else:
+            wmh_mat = np.zeros(volume_size)
+        if os.path.exists(os.path.join(inputDir,"cmb.nii.gz")):
+            cmbImage = sitk.ReadImage(os.path.join(inputDir, 'cmb.nii.gz'))
+            #filenames.append(create_colormap(2,outputDir))
+            cmb_mat = sitk.GetArrayFromImage(cmbImage)
+            filenames.extend(create_obj_lesions(cmb_mat, outputDir, "cmb"))
+        else:
+            cmb_mat = np.zeros(volume_size)
+        if os.path.exists(os.path.join(inputDir,"epvs.nii.gz")):
+            epvsImage = sitk.ReadImage(os.path.join(inputDir, 'epvs.nii.gz'))
+            #filenames.append(create_colormap(2,outputDir))
+            epvs_mat = sitk.GetArrayFromImage(epvsImage)
+            filenames.extend(create_obj_lesions(epvs_mat, outputDir, "epvs"))
+        else:
+            epvs_mat = np.zeros(volume_size)
+
+        combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,flairImage,outputDir)
+        filenames.extend([combined_labelmap,colortable])
     else:
-        filenames.extend(["colortable.txt"])
-        filenames.extend([x for x in os.listdir(outputDir) if x.startswith("multiple_wmh")])
-        filenames.extend(["multiple_wmh_lesiondata.csv"])
+        #
+        wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz'))
+        wmh_mat = sitk.GetArrayFromImage(wmhImage)
+        cmbImage = sitk.ReadImage(os.path.join(inputDir, 'cmb.nii.gz'))
+        cmb_mat = sitk.GetArrayFromImage(cmbImage)
+        epvsImage = sitk.ReadImage(os.path.join(inputDir, 'epvs.nii.gz'))
+        epvs_mat = sitk.GetArrayFromImage(epvsImage)
+        combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,flairImage,outputDir)
+        #
+        filenames.extend(["combinedcolortable.txt"])
+        filenames.extend([x for x in os.listdir(outputDir) if x.startswith("multiple") and x.endswith(".obj")])
+        if os.path.exists(os.path.join(outputDir,"multiple_wmh_lesiondata.csv")):
+            filenames.extend(["multiple_wmh_lesiondata.csv"])
+        if os.path.exists(os.path.join(outputDir,"multiple_cmb_lesiondata.csv")):
+            filenames.extend(["multiple_cmb_lesiondata.csv"])
+        if os.path.exists(os.path.join(outputDir,"multiple_epvs_lesiondata.csv")):
+            filenames.extend(["multiple_epvs_lesiondata.csv"])
 
     """wmhImageAdd = sitk.ReadImage(os.path.join('output', 'test.nii.gz'))
     sub_wmh(sitk.GetArrayFromImage(wmhImage1), sitk.GetArrayFromImage(wmhImageAdd), wmhImage1, outputDir)"""
@@ -424,32 +461,34 @@ def create_meshes_of_patient(patientname):
 
 @app.route('/get_mesh_file/<string:patientname>/<string:filename>', methods=["POST"])
 def get_mesh_file(patientname,filename):
-    print("get mesh file",filename)
+    logging.debug("get mesh file",filename)
     return send_from_directory(os.path.join('resources\\output',patientname), filename)
 
 @app.route('/get_volume_of_patient/<string:patientname>', methods=["POST"])
 def get_volume_of_patient(patientname):
-    print("get volume file", patientname)
+    logging.debug("get volume file", patientname)
     return send_from_directory(os.path.join('resources\\input', patientname),'FLAIR.nii.gz')
 
-@app.route('/get_labelmap_of_patient/<string:patientname>', methods=["POST"])
-def get_labelmap_of_patient(patientname):
-    print("get labelmap file", patientname)
+@app.route('/get_labelmap_of_patient/<string:patientname>/<string:lesiontype>', methods=["POST"])
+def get_labelmap_of_patient(patientname, lesiontype):
+    logging.debug("get labelmap file", patientname, lesiontype)
     if patientname == "tmp":
-        return send_from_directory(os.path.join('resources\\output', patientname),'wmh.nii.gz')
-    return send_from_directory(os.path.join('resources\\input', patientname),'wmh.nii.gz')
+        return send_from_directory(os.path.join('resources\\output', patientname),f'{lesiontype}.nii.gz')
+    if lesiontype == "combined":
+        return send_from_directory(os.path.join('resources\\output', patientname),f'{lesiontype}.nii.gz')
+    return send_from_directory(os.path.join('resources\\input', patientname),f'{lesiontype}.nii.gz')
 
 @app.route('/get_patients/', methods=["POST"])
 def get_patients():
     patients = [name for name in os.listdir("resources\\input") if os.path.isdir(os.path.join("resources\\input", name))]
-    print(patients)
+    logging.debug(patients)
     return jsonify(patients)
 
 @app.route('/add_patient_labelmaps/', methods=["POST"])
 def add_patient_labelmaps():
     images = []
     patients = request.get_json()["message"]
-    print(patients)
+    logging.debug(patients)
     if len(patients) == 0:
         return
     if not os.path.exists(os.path.join('resources\\output','tmp')):

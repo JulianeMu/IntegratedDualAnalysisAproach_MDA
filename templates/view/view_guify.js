@@ -32,7 +32,13 @@ function setupGUIfy() {
             {
                 type: 'checkbox', label: 'Toggle WMH',
                 initial: true,
-                onChange: toggleMeshlabelmapVisibility,
+                onChange: toggleWMH,
+                folder: 'Indirect Vis'
+            },
+            {
+                type: 'checkbox', label: 'Toggle CMB',
+                initial: true,
+                onChange: toggleCMB,
                 folder: 'Indirect Vis'
             },
             {
@@ -376,14 +382,26 @@ function opacityMeshlabelmap(value) {
     }
 }
 
-function toggleMeshlabelmapVisibility(value) {
+function toggleWMH(value){
+    toggleMeshlabelmapVisibility(value,'wmh');
+}
+function toggleCMB(value){
+    toggleMeshlabelmapVisibility(value,'cmb');
+}
+
+function toggleMeshlabelmapVisibility(value,type) {
 
     if (!meshlabelmap) {
         return;
     }
 
-    _data.meshlabelmap.meshes.forEach(x => x.visible = value);
+    //_data.meshlabelmap.meshes.forEach(x => x.visible = value);
     //meshlabelmap.visible = !meshlabelmap.visible;
+    for (let i = 0; i < _data.meshlabelmap.meshes.length; i++) {
+        if ( _data.meshlabelmap.type[i] === type) {
+            _data.meshlabelmap.meshes[i].visible = value;
+        }
+    }
 
     if (RT.linked) {
 

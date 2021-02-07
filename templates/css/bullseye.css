@@ -1,0 +1,9 @@
+#center_view {
+    height: fit-content;
+}
+
+#bullseye {
+    background-color: white;
+    width: 90%;
+    margin-top: var(--padding);
+}

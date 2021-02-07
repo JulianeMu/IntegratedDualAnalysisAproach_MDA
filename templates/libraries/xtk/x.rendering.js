@@ -433,7 +433,8 @@ function createData() {
               'filedata': [],
               'extensions': ['STL', 'VTK', 'FSM', 'SMOOTHWM', 'INFLATED', 'SPHERE',
                   'PIAL', 'ORIG', 'OBJ'],
-              'dictionary' : {}
+              'dictionary' : {},
+              'type' : []
           },
            'scalars': {
              'file': [],
@@ -495,10 +496,15 @@ function read(files) {
 
    // check which type of file it is
    if (_data['volume']['extensions'].indexOf(_fileExtension) >= 0) {
-       if (_fileName.toString().includes("wmh")){
+       if (_fileName.toString().includes("wmh") || _fileName.toString().includes("combined")) {
            updated_labelmap = true;
            _data['labelmap']['file'].push(f);
            _data['labelmap']['loaded'].push(false);
+       } else if (_fileName.toString().includes("cmb")){
+           //updated_labelmap = true;
+           //_data['labelmap']['file'].push(f);
+           //_data['labelmap']['loaded'].push(false);
+           _numberOfFiles -= 1;
        } else {
            updated_volume = true;
            _data['volume']['file'].push(f);
@@ -512,9 +518,18 @@ function read(files) {
      _data['colortable']['loaded'].push(false);
 
    } else if (_data['mesh']['extensions'].indexOf(_fileExtension) >= 0) {
-       if (_fileName.toString().includes("wmh")){
+       if (_fileName.toString().includes("wmh")) {
            _data['meshlabelmap']['file'].push(f);
            _data['meshlabelmap']['loaded'].push(false);
+           _data['meshlabelmap']['type'].push('wmh');
+       } else if (_fileName.toString().includes("cmb")) {
+           _data['meshlabelmap']['file'].push(f);
+           _data['meshlabelmap']['loaded'].push(false);
+           _data['meshlabelmap']['type'].push('cmb');
+       } else if (_fileName.toString().includes("epvs")) {
+           _data['meshlabelmap']['file'].push(f);
+           _data['meshlabelmap']['loaded'].push(false);
+           _data['meshlabelmap']['type'].push('epvs');
        } else {
            _data['mesh']['file'].push(f);
            _data['mesh']['loaded'].push(false);
@@ -623,23 +638,93 @@ function preprocess_colortable(event) {
     colors = [];
     tick_values = [];
     legend_title = "";
-    data.split("\n").forEach((line)=>{
+    lines = data.split("\n");
+    if (lines[0][0] === "#") {
+        values = lines[0].split(" ");
+        if (values[1] === "combined" && values[2] === "diverging")
+            preprocess_diverging_combined_colortable(lines);
+        else if (values[1] === "combined" && values[2] === "summedup")
+            preprocess_diverging_combined_colortable(lines)
+        else if (values[1] === "combined" && values[2] === "binary")
+            preprocessing_swatches_colortable(lines)
+    }
+}
+
+function preprocessing_swatches_colortable(lines) {
+    values = [];
+    tick_values = [];
+    colors = [];
+
+    lines.forEach((line)=>{
         values = line.split(" ");
-        if(line[0] === "#") {
-            legend_title = line.replace('#','');
-        }
-        if (line.length > 0 && parseInt(values[5]) !== 0 && line[0] !=='#') {
-            tick_values.push(parseInt(values[0]));
+        if (line.length > 0 && line[0] !=='#' && parseInt(values[5]) !== 0) {
+            tick_values.push(values[1]);
             colors.push(d3.rgb(parseInt(values[2]), parseInt(values[3]), parseInt(values[4]), parseInt(values[5])));
         }
     })
-    legend({
+    swatches({
+        target: "#colormap_overlaps",
         color: d3.scaleOrdinal(tick_values, colors),
-        title: legend_title,
+        title: title,
         height: 50,
         tickValues: tick_values,
         tickSize: 0
     })
+}
+
+function preprocess_diverging_colortable(lines,title,target) {
+    values = [];
+    tick_values = [];
+    colors = [];
+
+    lines.forEach((line)=>{
+        values = line.split(" ");
+        if (line.length > 0 && parseInt(values[5]) !== 0 && line[0] !=='#') {
+            tick_values.push(parseInt(values[1].split("_")[1]));
+            colors.push(d3.rgb(parseInt(values[2]), parseInt(values[3]), parseInt(values[4]), parseInt(values[5])));
+        }
+    })
+    legend({
+        target: target,
+        color: d3.scaleOrdinal(tick_values, colors),
+        title: title,
+        height: 50,
+        tickValues: tick_values,
+        tickSize: 0
+    })
+}
+
+function preprocess_swatches() {
+
+}
+
+function preprocess_diverging_combined_colortable(lines) {
+    wmh_data = [];
+    cmb_data = [];
+    epvs_data = [];
+    combined_data = [];
+
+    lines.forEach( (x) => {
+        values = x.split(" ");
+        if (x.length === 0 || values[0] === "#") {
+            // do nothing
+        } else if (values[1].startsWith("wmh")) {
+            wmh_data.push(x);
+        } else if (values[1].startsWith("cmb")) {
+            cmb_data.push(x);
+        } else if (values[1].startsWith("epvs")) {
+            epvs_data.push(x);
+        } else if (values[1].startsWith("combined")) {
+            combined_data.push(x);
+        } else {
+            console.warn("Cannot parse line: " + x);
+        }
+    })
+
+    preprocess_diverging_colortable(wmh_data, "WMH Lesion Load", "#colormap_wmh");
+    preprocess_diverging_colortable(cmb_data, "CMB Lesion Load", "#colormap_cmb");
+    preprocess_diverging_colortable(epvs_data, "ePVS Lesion Load", "#colormap_epvs");
+
 }
 
 //
@@ -838,7 +923,7 @@ function parse(data) {
             meshlabelmap.moved = false;
             meshlabelmap.file = data['meshlabelmap']['file'][i].name;
             meshlabelmap.filedata = data['meshlabelmap']['filedata'][i];
-            meshlabelmap.color = [1, 0.3, 0.6];
+            meshlabelmap.color = meshlabelmap_color[data['meshlabelmap']['type'][i]];
             data.meshlabelmap.dictionary[meshlabelmap.id] = meshlabelmap.file;
 
             if (data['scalars']['file'].length > 0) {
@@ -1045,9 +1130,16 @@ function createTooltip(x,y,mesh_id){
     fake_div.id = "tooltipTarget"+mesh_id;
     $("#3d").append(fake_div);
 
+    var volume = "na";
+    for (let i = 0; i < _data.lesionmetadata.metadata.length; i++) {
+        if (mesh_name in _data.lesionmetadata.metadata[i]) {
+            volume = _data["lesionmetadata"]["metadata"][i][mesh_name].volume.toFixed(4);
+        }
+    }
+
     var tippy_instance = tippy("#tooltipTarget"+mesh_id,{
         content: "<strong>Name:</strong> "+mesh_name+"<br>"+
-            "<strong>Volume:</strong> "+_data["lesionmetadata"]["metadata"][_data["lesionmetadata"]["metadata"].length-1][mesh_name].volume.toFixed(4),
+            "<strong>Volume:</strong> "+volume,
         zIndex: 9999,
         trigger: "manual",
         sticky: true,
