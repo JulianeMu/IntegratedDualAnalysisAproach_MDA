@@ -147,69 +147,61 @@ function legend({
 }
 
 
+
 function swatches({
-      target,
-      color,
-      columns = null,
-      format = x => x,
-      swatchSize = 15,
-      swatchWidth = swatchSize,
-      swatchHeight = swatchSize,
-      marginLeft = 0
-  }) {
-    const id = DOM.uid().id;
+                      target,
+                      color,
+                      format = x => x,
+                      swatchSize = 15,
+                      swatchWidth = swatchSize,
+                      swatchHeight = swatchSize,
+                      marginLeft = 0
+                  }) {
+    const id = "swatch";
 
-    if (columns !== null) return html`<div style="display: flex; align-items: center; margin-left: ${+marginLeft}px; min-height: 33px; font: 10px sans-serif;">
-  <style>
+    d = document.createElement("div");
+    d.style.display = "grid";
+    d.style.alignItems= "center";
+    d.style.minHeight = "33px";
+    d.style.marginLeft =  marginLeft + "px";
+    d.style.fontSize = "10px";
+    d.style.fontFamily = "sans-serif";
 
-.${id}-item {
-  break-inside: avoid;
-  display: flex;
-  align-items: center;
-  padding-bottom: 1px;
-}
+    // move this to global css
+    styles = `<style>
+    .swatch {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 1em;
+        }
 
-.${id}-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: calc(100% - ${+swatchWidth}px - 0.5em);
-}
+    .swatch::before {    
+            content: "|";
+            display: inline-flex;
+            width: ${+swatchWidth}px;
+            height: ${+swatchHeight}px;
+            margin-right: 0.5em;
+            background: var(--color);
+            color: var(--color);
+        }
+    </style>`;
 
-.${id}-swatch {
-  width: ${+swatchWidth}px;
-  height: ${+swatchHeight}px;
-  margin: 0 0.5em 0 0;
-}
+    // can be left out when the previous stuff has been moved
+    var styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
 
-  </style>
-  <div style="width: 100%; columns: ${columns};">${color.domain().map(value => {
-        const label = format(value);
-        return html`<div class="${id}-item">
-      <div class="${id}-swatch" style="background:${color(value)};"></div>
-      <div class="${id}-label" title="${label.replace(/["&]/g, entity)}">${document.createTextNode(label)}</div>
-    </div>`;
-    })}
-  </div>
-</div>`;
-
-    return html`<div style="display: flex; align-items: center; min-height: 33px; margin-left: ${+marginLeft}px; font: 10px sans-serif;">
-  <style>
-
-.${id} {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 1em;
-}
-
-.${id}::before {
-  content: "";
-  width: ${+swatchWidth}px;
-  height: ${+swatchHeight}px;
-  margin-right: 0.5em;
-  background: var(--color);
-}
-
-  </style>
-  <div>${color.domain().map(value => html`<span class="${id}" style="--color: ${color(value)}">${document.createTextNode(format(value))}</span>`)}</div>`;
+    // adds the swatches
+    $(target).prepend(d);
+    color.domain().map( (value) => {
+        s = document.createElement("span");
+        s.className = "swatch";
+        s.style.setProperty("--color", `${color(value)}`);
+        s.style.marginRight = "1em";
+        s.style.fontSize = swatchHeight-3 + "px";
+        s.style.marginTop = "1em";
+        s.appendChild(document.createTextNode(format(value)));
+        d.appendChild(s);
+    });
 }

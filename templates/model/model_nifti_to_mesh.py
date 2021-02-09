@@ -7,6 +7,7 @@ from matplotlib import cm
 import math
 import trimesh
 import pandas as pd
+import os
 
 # create brain mesh as OBJ
 def create_obj_brain(image, outputpath, threshold):
@@ -187,7 +188,7 @@ def write_multiple_obj_single_file(verts, faces, normals, outputfile):
 
 
 # add lesionmaps
-def add_wmh(images, originalImage, outputpath):
+def add_wmh(images, originalImage, outputpath, filetype):
     """
     :param images: List of NIFTI Labelmap ndarrays
     :param originalImage: one NIFTI Volume Data object
@@ -200,16 +201,16 @@ def add_wmh(images, originalImage, outputpath):
         image[image == 2] = 0
         finalImage += image
 
-    mesh_files = create_layered_meshes(finalImage,outputpath)
+    mesh_files = create_layered_meshes(finalImage,outputpath, filetype)
 
     finalImageFile = sitk.GetImageFromArray(finalImage)
     finalImageFile.CopyInformation(originalImage)
     writer = sitk.ImageFileWriter()
-    writer.SetFileName(outputpath + "/wmh.nii.gz")
+    writer.SetFileName(os.path.join(outputpath,filetype+".nii.gz"))
     writer.Execute(finalImageFile)
 
-    mesh_files.append(create_colormap(int(np.max(images)), outputpath))
-    return outputpath + "/wmh.nii.gz", finalImage, mesh_files
+    #mesh_files.append(create_colormap(int(np.max(images)), outputpath))
+    return filetype+".nii.gz", finalImage, mesh_files
 
 def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath):
     cmbOffset = np.max(np.abs(wmhImage))
@@ -258,9 +259,9 @@ def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath):
     else: #diverging colormap
         combinedColormap = create_combined_diverging_colormap(cmbOffset, epvsOffset, combinationOffset, outputpath)
 
-    return outputpath + "/combined.nii.gz", finalImage, combinedColormap
+    return "combined.nii.gz", finalImage, combinedColormap
 
-def create_layered_meshes(image, outputpath):
+def create_layered_meshes(image, outputpath, filetype):
     filenames = []
     image = image.transpose(2, 1, 0)
     layers = np.unique(image)
@@ -275,8 +276,8 @@ def create_layered_meshes(image, outputpath):
         verts[:, 1] = layer_image.shape[1] * spacing[1] - verts[:, 1]
         #filenames.extend(write_multiple_obj_files(verts, faces, normals, outputpath + "\\add_wmh_" + str(int(layer))))
         #filenames.extend(write_multiple_obj_single_file(verts, faces, normals, outputpath + "\\add_wmh_" + str(int(layer))))
-        write_single_obj_file(verts, faces, normals, outputpath + "\\add_wmh_" + str(int(layer))+".obj")
-        filenames.extend(["add_wmh_" + str(int(layer))+".obj"])
+        write_single_obj_file(verts, faces, normals, outputpath + "\\add_" + str(filetype) + "_" + str(int(layer))+".obj")
+        filenames.extend(["add_" + str(filetype) + "_" + str(int(layer))+".obj"])
 
     return filenames
 
@@ -356,10 +357,10 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
                 if i in epvs_mapping:
                     f.write(str(i) + " epvs_" + str(int(epvs_mapping[i]-(combinedOffset-epvsOffset))) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[epvs_mapping[i]]]) + "\n")
 
-        f.write(str(int(combinedOffset+1))+" combined_wmh_cmb 255 128 128 1\n")
-        f.write(str(int(combinedOffset+2))+" combined_wmh_epvs 201 255 229 1\n")
-        f.write(str(int(combinedOffset+3))+" combined_cmb_epvs 0 255 8 1\n")
-        f.write(str(int(combinedOffset+4))+" combined_wmh_cmb_epvs 255 237 163 1")
+        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 1\n")
+        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 1\n")
+        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 1\n")
+        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 1")
 
     return "combinedcolortable.txt"
 
@@ -392,10 +393,10 @@ def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, out
             if i in epvs_mapping:
                 f.write(str(i) + " epvs_" + str(int(epvs_mapping[i]-(combinedOffset-epvsOffset)+1)) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[epvs_mapping[i]]]) + "\n")
 
-        f.write(str(int(combinedOffset+1))+" combined_wmh_cmb 255 128 128 1\n")
-        f.write(str(int(combinedOffset+2))+" combined_wmh_epvs 201 255 229 1\n")
-        f.write(str(int(combinedOffset+3))+" combined_cmb_epvs 0 255 8 1\n")
-        f.write(str(int(combinedOffset+4))+" combined_wmh_cmb_epvs 255 237 163 1")
+        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 1\n")
+        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 1\n")
+        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 1\n")
+        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 1")
 
     return "combinedcolortable.txt"
 
@@ -415,14 +416,14 @@ def create_combined_binary_colormap(outputpath):
     with open(outputpath+"/combinedcolortable.txt", "w") as f:
         f.write("# combined binary" + "\n")
         f.write("0 background 0 0 0 0\n")
-        f.write(str(1) + " wmh " + " ".join([str(math.floor(x*255)) for x in samplingColors_wmh[1]]) + "\n")
-        f.write(str(2) + " cmb " + " ".join([str(math.floor(x*255)) for x in samplingColors_cmb[1]]) + "\n")
-        f.write(str(3) + " epvs " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[1]]) + "\n")
+        f.write(str(1) + " WMH " + " ".join([str(math.floor(x*255)) for x in samplingColors_wmh[1]]) + "\n")
+        f.write(str(2) + " CMB " + " ".join([str(math.floor(x*255)) for x in samplingColors_cmb[1]]) + "\n")
+        f.write(str(3) + " ePVS " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[1]]) + "\n")
 
-        f.write("4 combined_wmh_cmb 255 128 128 1\n")
-        f.write("5 combined_wmh_epvs 201 255 229 1\n")
-        f.write("6 combined_cmb_epvs 0 255 8 1\n")
-        f.write("7 combined_wmh_cmb_epvs 255 237 163 1")
+        f.write("4 combined_WMH_CMB 255 128 128 1\n")
+        f.write("5 combined_WMH_ePVS 201 255 229 1\n")
+        f.write("6 combined_CMB_ePVS 0 255 8 1\n")
+        f.write("7 combined_WMH_CMB_ePVS 255 237 163 1")
 
     return "combinedcolortable.txt"
 

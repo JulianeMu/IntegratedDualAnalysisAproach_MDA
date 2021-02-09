@@ -51,7 +51,7 @@ id_data_type__date = "date"
 # merged_all = pd.read_csv("resources/Repro_FastSurfer_run-01_cleaned.csv", keep_default_na=False, na_values=[""])
 
 # synthetic
-merged_all = pd.read_csv("resources/synthetic_dates_missingness2.csv", keep_default_na=False, na_values=[""])
+merged_all = pd.read_csv("resources/synthetic_dates_missingness2_small.csv", keep_default_na=False, na_values=[""])
 
 #merged_all = pd.read_csv("resources/clinical_data_imputed.csv", keep_default_na=False, na_values=[""])
 
@@ -486,7 +486,12 @@ def get_patients():
 
 @app.route('/add_patient_labelmaps/', methods=["POST"])
 def add_patient_labelmaps():
-    images = []
+    wmhImages = []
+    cmbImages = []
+    epvsImages = []
+
+    originalImage = None
+
     patients = request.get_json()["message"]
     logging.debug(patients)
     if len(patients) == 0:
@@ -494,10 +499,41 @@ def add_patient_labelmaps():
     if not os.path.exists(os.path.join('resources\\output','tmp')):
         os.mkdir(os.path.join('resources\\output','tmp'))
     for patient in patients:
-        patientImage = sitk.ReadImage(os.path.join('resources\\input', patient, 'wmh.nii.gz'))
-        images.append(sitk.GetArrayFromImage(patientImage))
-    [nifti_file, _, mesh_files] = add_wmh(images,patientImage, os.path.join('resources\\output','tmp'))
-    return jsonify([[nifti_file],mesh_files])
+        patient = str(patient)
+        if os.path.exists(os.path.join('resources\\input', patient, 'wmh.nii.gz')):
+            patientImageWMH = sitk.ReadImage(os.path.join('resources\\input', patient, 'wmh.nii.gz'))
+            wmhImages.append(sitk.GetArrayFromImage(patientImageWMH))
+            originalImage = patientImageWMH
+        if os.path.exists(os.path.join('resources\\input', patient, 'cmb.nii.gz')):
+            patientImageCMB = sitk.ReadImage(os.path.join('resources\\input', patient, 'cmb.nii.gz'))
+            cmbImages.append(sitk.GetArrayFromImage(patientImageCMB))
+            originalImage = patientImageCMB
+        if os.path.exists(os.path.join('resources\\input', patient, 'epvs.nii.gz')):
+            patientImageEPVS = sitk.ReadImage(os.path.join('resources\\input', patient, 'epvs.nii.gz'))
+            epvsImages.append(sitk.GetArrayFromImage(patientImageEPVS))
+            originalImage = patientImageEPVS
+
+    imageShape = sitk.GetArrayFromImage(originalImage).shape
+    allMeshes = []
+    if len(wmhImages) != 0:
+        [_, wmh_mat, mesh_files] = add_wmh(wmhImages,patientImageWMH, os.path.join('resources\\output','tmp'), "wmh")
+        allMeshes.extend(mesh_files)
+    else:
+        wmh_mat = np.zeros(imageShape)
+    if len(cmbImages) != 0:
+        [_, cmb_mat, mesh_files] = add_wmh(cmbImages,patientImageCMB, os.path.join('resources\\output','tmp'), "cmb")
+        allMeshes.extend(mesh_files)
+    else:
+        cmb_mat = np.zeros(imageShape)
+    if len(epvsImages) != 0:
+        [_, epvs_mat, mesh_files] = add_wmh(epvsImages,patientImageEPVS, os.path.join('resources\\output','tmp'), "epvs")
+        allMeshes.extend(mesh_files)
+    else:
+        epvs_mat = np.zeros(imageShape)
+
+    combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,originalImage,os.path.join('resources\\output','tmp'))
+    allMeshes.append(colortable)
+    return jsonify(allMeshes)
 
 if __name__ == '__main__':
     app.run(debug=True)
