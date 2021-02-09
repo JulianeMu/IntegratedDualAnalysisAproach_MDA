@@ -385,13 +385,13 @@ def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, out
         f.write("0 background 0 0 0 0\n")
         for i in range(0, int(cmbOffset+1)):
             if i in wmh_mapping:
-                f.write(str(i) + " wmh_" + str(int(wmh_mapping[i]-cmbOffset+1)) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_wmh[wmh_mapping[i]]]) + "\n")
+                f.write(str(i) + " wmh_" + str(int(wmh_mapping[i])) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_wmh[wmh_mapping[i]]]) + "\n")
         for i in range(int(cmbOffset+1), int(epvsOffset+1)):
             if i in cmb_mapping:
-                f.write(str(i) + " cmb_" + str(int(cmb_mapping[i]-(epvsOffset-cmbOffset)+1)) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_cmb[cmb_mapping[i]]]) + "\n")
+                f.write(str(i) + " cmb_" + str(int(cmb_mapping[i])) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_cmb[cmb_mapping[i]]]) + "\n")
         for i in range(int(epvsOffset+1), int(combinedOffset+1)):
             if i in epvs_mapping:
-                f.write(str(i) + " epvs_" + str(int(epvs_mapping[i]-(combinedOffset-epvsOffset)+1)) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[epvs_mapping[i]]]) + "\n")
+                f.write(str(i) + " epvs_" + str(int(epvs_mapping[i])) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[epvs_mapping[i]]]) + "\n")
 
         f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 1\n")
         f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 1\n")

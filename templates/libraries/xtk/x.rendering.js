@@ -271,7 +271,8 @@ function createData() {
              'file': [], // link to file
                'loaded' : [],
              'filedata': [], // binary information of file
-             'extensions': ['NRRD', 'MGZ', 'MGH', 'NII', 'GZ', 'DCM', 'DICOM']
+             'extensions': ['NRRD', 'MGZ', 'MGH', 'NII', 'GZ', 'DCM', 'DICOM'],
+               'volumes': []
            },
            'labelmap': {
              'file': [],
@@ -584,7 +585,11 @@ function parse(data) {
 
     //window.console.time('Loadtime');
     if (updated_volume) {
-        createVolume(data);
+        for (let i = 0; i < data['volume']['file'].length; i++) {
+            if (data['volume']["volumes"].length - 1 >= i)
+                continue;
+            createVolume(data, i);
+        }
     } else {
         if (_data.updated_labelmap) {
             for (let i = 0; i < data['labelmap']['file'].length; i++) {
@@ -632,13 +637,12 @@ function parse(data) {
   }
 };
 
-function createVolume(data) {
+function createVolume(data, i) {
     volume = new X.volume();
     volume.pickable = false;
-    volume.file = data['volume']['file'].map(function (v) {
-        return v.name;
-    });
-    volume.filedata = data['volume']['filedata'];
+    volume.file = data['volume']['file'][i].name;
+    volume.filedata = data['volume']['filedata'][i];
+    data.volume.volumes.push(volume);
     var colortableParent = volume;
 
     if (updated_labelmap) {
@@ -653,16 +657,18 @@ function createVolume(data) {
 
     if (data['colortable']['file'].length > 0) {
         // we have a color table
-        colortableParent.colortable.file = data['colortable']['file'].map(function (v) {
-            return v.name;
-        });
-        colortableParent.colortable.filedata = data['colortable']['filedata'];
+        colortableParent.colortable.file = data['colortable']['file'][data["colortable"]["file"].length-1].name;
+        colortableParent.colortable.filedata = data['colortable']['filedata'][data["colortable"]["file"].length-1];
     } else {
         colortableParent.e.xa = {"Ja": 0}
     }
-    currentVolume = volume;
-    // add the volume
-    ren3d.add(volume);
+    if (currentVolume === null) {
+        currentVolume = volume;
+        // add the volume
+        ren3d.add(volume);
+    } else {
+        switchToVolume(i);
+    }
 }
 function createLabelmap(data, i) {
     let labeledVolume = new X.volume();
@@ -752,6 +758,19 @@ function switchToLabelmap(index) {
     } else {
         console.warn("labelmap with index ", index, "has not been loaded yet. so far ",
             _data.labelmap.volumes.length, "have been loaded");
+    }
+}
+
+function switchToVolume(index) {
+    if (index < _data.volume.volumes.length){
+        // remember the previous volume to update the 2D renderer after the data has been loaded in ren3d
+        ren3d.remove(currentVolume);
+        previousVolume = currentVolume;
+        currentVolume = _data.volume.volumes[index];
+        ren3d.add(currentVolume);
+    } else {
+        console.warn("volume with index ", index, "has not been loaded yet. so far ",
+            _data.volume.volumes.length, "have been loaded");
     }
 }
 

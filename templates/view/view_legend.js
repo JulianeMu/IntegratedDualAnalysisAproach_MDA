@@ -159,6 +159,8 @@ function swatches({
                   }) {
     const id = "swatch";
 
+    $(target).children().remove();
+
     d = document.createElement("div");
     d.style.display = "grid";
     d.style.alignItems= "center";
