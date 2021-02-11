@@ -30,9 +30,11 @@ id_data_type__date = "date"
 #merged_all = get_data_from_server.get_dataframe_from_server()
 
 # synthetic
-merged_all = pd.read_csv(os.path.dirname(sys.argv[0]) + os.path.sep + "resources" + os.path.sep +
-                         "synthetic_dates_missingness2.csv", keep_default_na=False, na_values=[""])
+#merged_all = pd.read_csv(os.path.dirname(sys.argv[0]) + os.path.sep + "resources" + os.path.sep +
+#                         "synthetic_dates_missingness2.csv", keep_default_na=False, na_values=[""])
 
+merged_all = pd.read_csv(os.getcwd() + os.path.sep + "resources" + os.path.sep +
+                         "synthetic_dates_missingness2.csv", keep_default_na=False, na_values=[""])
 
 merged_all = merged_all.loc[:, ~merged_all.columns.duplicated()]  # remove duplicate rows
 

@@ -18,6 +18,8 @@ Computing common measures for all dimensions allows us to visualize both quantit
 ## How to run it
 - download repository from github
 - open project in development environment, such as IntelliJ idea
+- make sure python 3.7 or python 3.8 is installed
+- install libraries listed in **requirements.txt**
 - right click on **app_MDA.py** and run it
 - navigate to */templates/index.html* and select run
 
