@@ -42,6 +42,12 @@ function setupGUIfy() {
                 folder: 'Indirect Vis'
             },
             {
+                type: 'checkbox', label: 'Toggle ePVS',
+                initial: true,
+                onChange: toggleEPVS,
+                folder: 'Indirect Vis'
+            },
+            {
                 type: 'select', label: 'View',
                 options: ['Slices', 'DVR'],
                 onChange: switchView,
@@ -387,6 +393,10 @@ function toggleWMH(value){
 }
 function toggleCMB(value){
     toggleMeshlabelmapVisibility(value,'cmb');
+}
+
+function toggleEPVS(value){
+    toggleMeshlabelmapVisibility(value,'epvs');
 }
 
 function toggleMeshlabelmapVisibility(value,type) {

@@ -501,6 +501,9 @@ function preprocess_colortable(event) {
 }
 
 function preprocessing_swatches_colortable(lines) {
+    if (typeof combined_colortable === "undefined")
+        combined_colortable = {};
+
     values = [];
     tick_values = [];
     colors = [];
@@ -513,6 +516,7 @@ function preprocessing_swatches_colortable(lines) {
                 tmp_1 = tmp_1.slice(1,tmp_1.length);
                 tick_values.push(tmp_1.join(" & "));
             } else {
+                combined_colortable[values[1].toLowerCase()] = [parseInt(values[2])/255, parseInt(values[3])/255, parseInt(values[4])/255];
                 tick_values.push(values[1]);
             }
             colors.push(d3.rgb(parseInt(values[2]), parseInt(values[3]), parseInt(values[4]), parseInt(values[5])));
@@ -525,6 +529,7 @@ function preprocessing_swatches_colortable(lines) {
 }
 
 function preprocess_diverging_colortable(lines,title,target) {
+    color_dict = {}
     values = [];
     tick_values = [];
     colors = [];
@@ -534,6 +539,7 @@ function preprocess_diverging_colortable(lines,title,target) {
         if (line.length > 0 && parseInt(values[5]) !== 0 && line[0] !=='#') {
             tick_values.push(parseInt(values[1].split("_")[1]));
             colors.push(d3.rgb(parseInt(values[2]), parseInt(values[3]), parseInt(values[4]), parseInt(values[5])));
+            color_dict[parseInt(values[1].split("_")[1])] = [parseInt(values[2])/255, parseInt(values[3])/255, parseInt(values[4])/255];
         }
     })
     legend({
@@ -544,9 +550,12 @@ function preprocess_diverging_colortable(lines,title,target) {
         tickValues: tick_values,
         tickSize: 0
     })
+
+    return color_dict;
 }
 
 function preprocess_diverging_combined_colortable(lines) {
+    combined_colortable = {}
     wmh_data = [];
     cmb_data = [];
     epvs_data = [];
@@ -569,9 +578,9 @@ function preprocess_diverging_combined_colortable(lines) {
         }
     })
 
-    preprocess_diverging_colortable(wmh_data, "WMH Lesion Load", "#colormap_wmh");
-    preprocess_diverging_colortable(cmb_data, "CMB Lesion Load", "#colormap_cmb");
-    preprocess_diverging_colortable(epvs_data, "ePVS Lesion Load", "#colormap_epvs");
+    combined_colortable["wmh"] = preprocess_diverging_colortable(wmh_data, "WMH Lesion Load", "#colormap_wmh");
+    combined_colortable["cmb"] = preprocess_diverging_colortable(cmb_data, "CMB Lesion Load", "#colormap_cmb");
+    combined_colortable["epvs"] = preprocess_diverging_colortable(epvs_data, "ePVS Lesion Load", "#colormap_epvs");
     preprocessing_swatches_colortable(combined_data);
 }
 
@@ -614,8 +623,10 @@ function parse(data) {
   if (data['meshlabelmap']['file'].length > 0) {
 
         for (let i = 0; i < data['meshlabelmap']['file'].length; i++){
-            if (data['meshlabelmap']["meshes"].length - 1 >= i)
+            if (data['meshlabelmap']["meshes"].length - 1 >= i) {
+                ren3d.remove(data['meshlabelmap']['meshes'][i]);
                 continue;
+            }
 
             // we have a mesh
             createMeshLabelmap(data, i);
@@ -715,7 +726,15 @@ function createMeshLabelmap(data, i) {
     meshlabelmap.moved = false;
     meshlabelmap.file = data['meshlabelmap']['file'][i].name;
     meshlabelmap.filedata = data['meshlabelmap']['filedata'][i];
-    meshlabelmap.color = meshlabelmap_color[data['meshlabelmap']['type'][i]];
+    if (typeof combined_colortable !== "undefined") {
+        let filename_parts = data['meshlabelmap']['file'][i].name.split(".")[0].split("_")
+        if (filename_parts[0] === "add")
+            meshlabelmap.color = combined_colortable[filename_parts[1]][filename_parts[2]]
+        else if (filename_parts[0] === "multiple")
+            meshlabelmap.color = combined_colortable[filename_parts[1]]
+    } else {
+        meshlabelmap.color = meshlabelmap_color[data['meshlabelmap']['type'][i]];
+    }
     data.meshlabelmap.dictionary[meshlabelmap.id] = meshlabelmap.file;
     data.meshlabelmap.meshes.push(meshlabelmap);
 

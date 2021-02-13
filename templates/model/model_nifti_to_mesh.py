@@ -117,9 +117,12 @@ def write_multiple_obj_files(verts, faces, normals, outputfile):
     :return: filenames
     """
     # find connected components
+    vert_to_faceset = {vert: set() for vert in range(verts.shape[0])}
     edges = []
-    for face in faces:
+    for i, face in enumerate(faces):
         edges.extend(list(itertools.combinations(face, 2)))
+        for vertex in face:
+            vert_to_faceset[vertex].add(i)
     g = nx.from_edgelist(edges)
 
     # compute connected components and print results
@@ -137,10 +140,8 @@ def write_multiple_obj_files(verts, faces, normals, outputfile):
         def remap(x):
             return vertices_map[x]
         remap = np.vectorize(remap)                  # vectorize the function such that numpy can apply it in parallel
-        filter_faces = np.apply_along_axis(lambda x: x[0] in component and
-                                                     x[1] in component and
-                                                     x[2] in component, 1, faces)
-        remapped_faces = remap(faces[filter_faces])  # apply the remap function to each face
+        filter_faces = set().union(*[vert_to_faceset[vert] for vert in component])
+        remapped_faces = remap(faces[np.array(list(filter_faces)), :])  # apply the remap function to each face
         mesh = trimesh.Trimesh(vertices = filtered_verts, faces = remapped_faces, process = False)  # calc volume and stuff
         filename = outputfile.split("\\")[-1]+f'_{i}.obj'
         df = df.append({'Filename': filename, 'Volume': mesh.volume}, ignore_index=True)
@@ -212,7 +213,7 @@ def add_wmh(images, originalImage, outputpath, filetype):
     #mesh_files.append(create_colormap(int(np.max(images)), outputpath))
     return filetype+".nii.gz", finalImage, mesh_files
 
-def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath):
+def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath, colormapType = None):
     cmbOffset = np.max(np.abs(wmhImage))
     epvsOffset = np.max(np.abs(cmbImage))+cmbOffset
     combinationOffset = np.max(np.abs(epvsImage))+epvsOffset
@@ -249,12 +250,19 @@ def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath):
     writer = sitk.ImageFileWriter()
     writer.SetFileName(outputpath + "/combined.nii.gz")
     writer.Execute(finalImageFile)
+    if colormapType is None:
+        if np.max(wmhImage) <= 1 and np.min(wmhImage) >= 0 and \
+                np.max(cmbImage) <= 1 and np.min(cmbImage) >= 0 and \
+                np.max(epvsImage) <= 1 and np.min(epvsImage) >= 0:
+            colormapType = "binary"
+        elif np.min(wmhImage) >= 0 and np.min(cmbImage) >= 0 and np.min(epvsImage) >= 0:
+            colormapType = "summedup"
+        else:
+            colormapType = "diverging"
 
-    if np.max(wmhImage) <= 1 and np.min(wmhImage) >= 0 and\
-        np.max(cmbImage) <= 1 and np.min(cmbImage) >= 0 and\
-        np.max(epvsImage) <= 1 and np.min(epvsImage) >= 0:
+    if colormapType == "binary":
         combinedColormap = create_combined_binary_colormap(outputpath)
-    elif np.min(wmhImage) >= 0 and np.min(cmbImage) >= 0 and np.min(epvsImage) >= 0:
+    elif colormapType == "summedup":
         combinedColormap = create_combined_summedup_colormap(cmbOffset, epvsOffset, combinationOffset, outputpath)
     else: #diverging colormap
         combinedColormap = create_combined_diverging_colormap(cmbOffset, epvsOffset, combinationOffset, outputpath)

@@ -310,3 +310,47 @@ input:checked + .slider:before {
 .slider.round:before {
     border-radius: 50%;
 }
+
+.buttons_class{
+    width: calc(50% - 2*var(--padding));
+    /*height: fit-content;*/
+    overflow: hidden;
+    background-color: var(--items-background-color);
+    padding: var(--padding);
+    margin: calc(2*var(--padding));
+    margin-top: 0px;
+    float: left;
+    position: relative;
+    pointer-events: all;
+}
+
+.each_button_set_view_class {
+    width: calc(100% - 1*var(--main-margin));
+    height: calc(100% - 2* var(--padding) - var(--heading_height));
+    overflow: hidden;
+    background-color: var(--element-background-color);
+    padding: var(--padding);
+    margin: var(--padding);
+    position: relative;
+}
+
+.bullseye_class{
+    width: calc(100% - 4*var(--padding));
+    height: fit-content;
+    overflow: hidden;
+    background-color: #8ba6b7; /*#9f8bb7*/
+    padding: var(--padding);
+    margin: calc(2*var(--padding));
+    margin-bottom: var(--main-margin);
+    margin-top: 0px;
+}
+
+.bullseye_set_view_class {
+    width: calc(100% - 1*var(--main-margin));
+    height: calc(100% - 2* var(--padding) - var(--heading_height));
+    overflow: hidden;
+    background-color: var(--element-background-color);
+    padding: var(--padding);
+    margin: var(--padding);
+    position: relative;
+}
