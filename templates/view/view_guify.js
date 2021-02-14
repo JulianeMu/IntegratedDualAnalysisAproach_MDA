@@ -8,15 +8,15 @@ function setupGUIfy() {
     if (_data.volume.file.length > 0) {
 
         var gui = new guify({
-            title: 'Brain Vis',
+            title: 'View Image Data of Selection',
             //align: 'left',
             theme: 'dark',
             //width: '300px',
             open: true,
-            root: ren3d.container,
+            root: document.getElementById("right_view"),
         });
 
-        gui.container.style.width = "99%";
+        gui.container.style.width = "100%";
 
         var dim = currentVolume.range;
 

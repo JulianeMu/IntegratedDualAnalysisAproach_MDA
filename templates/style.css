@@ -338,7 +338,7 @@ input:checked + .slider:before {
     width: calc(100% - 4*var(--padding));
     height: fit-content;
     overflow: hidden;
-    background-color: #8ba6b7; /*#9f8bb7*/
+    background-color: #9bc0ca; /*#9f8bb7 #8ba6b7*/
     padding: var(--padding);
     margin: calc(2*var(--padding));
     margin-bottom: var(--main-margin);

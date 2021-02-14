@@ -21,6 +21,7 @@ except ImportError:
 from collections import namedtuple
 
 from templates.model.model_nifti_to_mesh import *
+from templates.model.model_bullseye_parcellation import *
 import os
 import SimpleITK as sitk
 import logging
@@ -382,7 +383,6 @@ def comp_deviations(request_data_list):
 def hello():
     return "Hello World!"
 
-
 @app.after_request
 def add_headers(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -457,7 +457,6 @@ def create_meshes_of_patient(patientname):
     sub_wmh(sitk.GetArrayFromImage(wmhImage1), sitk.GetArrayFromImage(wmhImageAdd), wmhImage1, outputDir)"""
 
     return jsonify(filenames)
-
 
 @app.route('/get_mesh_file/<string:patientname>/<string:filename>', methods=["POST"])
 def get_mesh_file(patientname,filename):
@@ -587,6 +586,11 @@ def subPatientLabelmaps():
     combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,originalImage,os.path.join('resources\\output','tmp'), colormapType="diverging")
     allMeshes.append(colortable)
     return jsonify(allMeshes)
+
+@app.route('/get_bullseye/', methods=["POST"])
+def getBullseye():
+    return jsonify(mapToBullseye())
+
 
 if __name__ == '__main__':
     app.run(debug=True)
