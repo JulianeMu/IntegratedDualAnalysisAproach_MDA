@@ -151,6 +151,7 @@ function updateLinkedViews() {
         sliceAx.render();
         sliceSag.render();
         sliceCor.render();
+
     } else {
         if (previousVolume === null && currentVolume === null){
             // mesh has been loaded, do nothing with the 2d renderers
@@ -162,9 +163,6 @@ function updateLinkedViews() {
             sliceAx.add(currentVolume);
             sliceSag.add(currentVolume);
             sliceCor.add(currentVolume);
-            sliceAx.render();
-            sliceSag.render();
-            sliceCor.render();
 
             //update sliders
             var dim = currentVolume.range;
@@ -172,19 +170,27 @@ function updateLinkedViews() {
             jQuery("#blue_slider").slider("option", "disabled", false);
             jQuery("#blue_slider").slider("option", "min", 0);
             jQuery("#blue_slider").slider("option", "max", dim[2]-1); //dim[2] - 1);
-            jQuery("#blue_slider").slider("option", "value", currentVolume.indexZ);
+            jQuery("#blue_slider").slider("option", "value", Math.floor(currentVolume.dimensions[2]/2));
 
             // sag
             jQuery("#red_slider").slider("option", "disabled", false);
             jQuery("#red_slider").slider("option", "min", 0);
             jQuery("#red_slider").slider("option", "max", dim[0] - 1); //dim[0] - 1);
-            jQuery("#red_slider").slider("option", "value", currentVolume.indexX);
+            jQuery("#red_slider").slider("option", "value", Math.floor(currentVolume.dimensions[0]/2));
 
             // cor
             jQuery("#green_slider").slider("option", "disabled", false);
             jQuery("#green_slider").slider("option", "min", 0);
             jQuery("#green_slider").slider("option", "max", dim[1] - 1); //dim[1] - 1);
-            jQuery("#green_slider").slider("option", "value", currentVolume.indexY);
+            jQuery("#green_slider").slider("option", "value", Math.floor(currentVolume.dimensions[1]/2));
+
+            sliceAx.render();
+            sliceSag.render();
+            sliceCor.render();
+
+            sliceAx.update(currentVolume)
+            sliceSag.update(currentVolume)
+            sliceCor.update(currentVolume)
         }
     }
 
@@ -318,8 +324,6 @@ function createData() {
         guiLoaded = false;
         updated_volume = false;
         updated_labelmap = false;
-        selected_color = [0,1,1];
-        hovered_color = [1,1,1];
     }
 
 }
@@ -491,12 +495,22 @@ function preprocess_colortable(event) {
     lines = data.split("\n");
     if (lines[0][0] === "#") {
         values = lines[0].split(" ");
-        if (values[1] === "combined" && values[2] === "diverging")
+        combined_colortable = {};
+        if (values[1] === "combined" && values[2] === "diverging"){
             preprocess_diverging_combined_colortable(lines);
-        else if (values[1] === "combined" && values[2] === "summedup")
+            combined_colortable.type = "diverging";
+        }
+        else if (values[1] === "combined" && values[2] === "summedup"){
             preprocess_diverging_combined_colortable(lines)
-        else if (values[1] === "combined" && values[2].startsWith("binary"))
+            combined_colortable.type = "summedup";
+        }
+        else if (values[1] === "combined" && values[2].startsWith("binary")){
             preprocessing_swatches_colortable(lines)
+            combined_colortable.type = "binary";
+            d3.select("#colormap_wmh").selectAll("*").remove();
+            d3.select("#colormap_cmb").selectAll("*").remove();
+            d3.select("#colormap_epvs").selectAll("*").remove();
+        }
     }
 }
 
@@ -728,9 +742,9 @@ function createMeshLabelmap(data, i) {
     meshlabelmap.filedata = data['meshlabelmap']['filedata'][i];
     if (typeof combined_colortable !== "undefined") {
         let filename_parts = data['meshlabelmap']['file'][i].name.split(".")[0].split("_")
-        if (filename_parts[0] === "add")
+        if (filename_parts[0] === "add" && combined_colortable.type !== "binary")
             meshlabelmap.color = combined_colortable[filename_parts[1]][filename_parts[2]]
-        else if (filename_parts[0] === "multiple")
+        else if (filename_parts[0] === "multiple" || combined_colortable.type === "binary")
             meshlabelmap.color = combined_colortable[filename_parts[1]]
     } else {
         meshlabelmap.color = meshlabelmap_color[data['meshlabelmap']['type'][i]];
@@ -913,12 +927,12 @@ function initializeHovering() {
                     originalColor: ((mesh_id in selected_elements) ? selected_elements[mesh_id].originalColor : mesh.color),
                     mesh: mesh
                 }
-                mesh.color = hovered_color;
+                mesh.color = color_hovered_mesh;
             }
         } else {
             for (x in hovered_element) {
                 if (x in selected_elements) {
-                    hovered_element[x].mesh.color = selected_color;
+                    hovered_element[x].mesh.color = color_selected_mesh;
                 } else {
                     hovered_element[x].mesh.color = hovered_element[x].originalColor;
                 }
@@ -943,7 +957,7 @@ function initializeMeshSelection() {
             if (mesh_id in selected_elements){
                 destroyTooltip(mesh_id);
                 if (x in hovered_element) {
-                    hovered_element[x].mesh.color = hovered_color;
+                    hovered_element[x].mesh.color = color_hovered_mesh;
                 }
                 for ( x in selected_elements) {
                     selected_elements[x].tippyInstance.show();
@@ -1006,7 +1020,7 @@ function createTooltip(x,y,mesh_id){
         selectedMesh: selected_mesh
     }
 
-    selected_mesh.color = selected_color;
+    selected_mesh.color = color_selected_mesh;
     //tippy_instance[0].show();
     for ( x in selected_elements) {
         selected_elements[x].tippyInstance.show();

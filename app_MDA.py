@@ -25,6 +25,7 @@ from templates.model.model_bullseye_parcellation import *
 import os
 import SimpleITK as sitk
 import logging
+import pickle
 
 start_time = time.time()
 
@@ -477,6 +478,24 @@ def get_labelmap_of_patient(patientname, lesiontype):
         return send_from_directory(os.path.join('resources\\output', patientname),f'{lesiontype}.nii.gz')
     return send_from_directory(os.path.join('resources\\input', patientname),f'{lesiontype}.nii.gz')
 
+def preprocess_bullseyes():
+    patients = [name for name in os.listdir("resources\\input") if os.path.isdir(os.path.join("resources\\input", name))]
+    for patient in patients:
+        for filetype in ["wmh", "cmb", "epvs"]:
+            if not os.path.exists(os.path.join("resources\\output", patient, "bullseyedata_"+filetype+".txt")):
+                if os.path.exists(os.path.join("resources\\input", patient, filetype+"transformed.nii.gz")) and\
+                   os.path.exists(os.path.join("resources\\input", patient, "bullseye_wmparc.nii.gz")):
+                    print("preprocessed bullseyes of patient ", patient, " of lesiontype ", filetype)
+                    image = sitk.ReadImage(os.path.join("resources\\input", patient, "bullseye_wmparc.nii.gz"))
+                    arr_bullseye = sitk.GetArrayFromImage(image)
+                    image_lesion = sitk.ReadImage(os.path.join("resources\\input", patient, filetype+"transformed.nii.gz"))
+                    arr_lesion = sitk.GetArrayFromImage(image_lesion)
+                    bullseye_data = mapToBullseye(arr_bullseye, arr_lesion)
+                    if not os.path.exists(os.path.join("resources\\output", patient)):
+                        os.makedirs(os.path.join("resources\\output", patient))
+                    with open(os.path.join("resources\\output", patient, "bullseyedata_"+filetype+".txt"),"wb") as f:
+                        pickle.dump(bullseye_data, f)
+
 @app.route('/get_patients/', methods=["POST"])
 def get_patients():
     patients = [name for name in os.listdir("resources\\input") if os.path.isdir(os.path.join("resources\\input", name))]
@@ -515,17 +534,17 @@ def add_patient_labelmaps():
     imageShape = sitk.GetArrayFromImage(originalImage).shape
     allMeshes = []
     if len(wmhImages) != 0:
-        [_, wmh_mat, mesh_files] = add_wmh(wmhImages,patientImageWMH, os.path.join('resources\\output','tmp'), "wmh")
+        [_, wmh_mat, mesh_files] = add_wmh(wmhImages, patientImageWMH, os.path.join('resources\\output','tmp'), "wmh")
         allMeshes.extend(mesh_files)
     else:
         wmh_mat = np.zeros(imageShape)
     if len(cmbImages) != 0:
-        [_, cmb_mat, mesh_files] = add_wmh(cmbImages,patientImageCMB, os.path.join('resources\\output','tmp'), "cmb")
+        [_, cmb_mat, mesh_files] = add_wmh(cmbImages, patientImageCMB, os.path.join('resources\\output','tmp'), "cmb")
         allMeshes.extend(mesh_files)
     else:
         cmb_mat = np.zeros(imageShape)
     if len(epvsImages) != 0:
-        [_, epvs_mat, mesh_files] = add_wmh(epvsImages,patientImageEPVS, os.path.join('resources\\output','tmp'), "epvs")
+        [_, epvs_mat, mesh_files] = add_wmh(epvsImages, patientImageEPVS, os.path.join('resources\\output','tmp'), "epvs")
         allMeshes.extend(mesh_files)
     else:
         epvs_mat = np.zeros(imageShape)
@@ -587,10 +606,73 @@ def subPatientLabelmaps():
     allMeshes.append(colortable)
     return jsonify(allMeshes)
 
-@app.route('/get_bullseye/', methods=["POST"])
-def getBullseye():
-    return jsonify(mapToBullseye())
+@app.route('/get_bullseye/<string:patientname>', methods=["POST"])
+def getBullseye(patientname):
+    bullseye_data = []
+    for filetype in ["wmh", "cmb", "epvs"]:
+        if os.path.exists(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt")):
+            with open(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt"),"rb") as f:
+                bullseye_data_filetype = pickle.load(f)
+                bullseye_data.append(bullseye_data_filetype)
+        else:
+            bullseye_data.append([])
+    return jsonify(bullseye_data)
 
+@app.route('/add_bullseye/', methods=["POST"])
+def addBullseye():
+    results = []
+    patients = request.get_json()["message"]
+    for filetype in ["wmh", "cmb", "epvs"]:
+        bullseye_data = []
+        for patientname in patients:
+            patientname = str(patientname)
+            if os.path.exists(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt")):
+                with open(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt"),"rb") as f:
+                    bullseye_data_filetype = pickle.load(f)
+                    bullseye_data.append(bullseye_data_filetype)
+        if len(bullseye_data) > 0:
+            results.append(addBullseyeData(bullseye_data))
+        else:
+            results.append([])
+    print(results)
+    return jsonify(results)
+
+@app.route('/sub_bullseye/', methods=["POST"])
+def subBullseye():
+    results = []
+    patients1 = request.get_json()["IDs1"]
+    patients2 = request.get_json()["IDs2"]
+
+    for filetype in ["wmh", "cmb", "epvs"]:
+        bullseye_data_patients1 = []
+        for patientname in patients1:
+            patientname = str(patientname)
+            if os.path.exists(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt")):
+                with open(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt"),"rb") as f:
+                    bullseye_data_filetype = pickle.load(f)
+                    bullseye_data_patients1.append(bullseye_data_filetype)
+        bullseye_data_patients2 = []
+        for patientname in patients2:
+            patientname = str(patientname)
+            if os.path.exists(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt")):
+                with open(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt"),"rb") as f:
+                    bullseye_data_filetype = pickle.load(f)
+                    bullseye_data_patients2.append(bullseye_data_filetype)
+        if len(bullseye_data_patients1) >= 1:
+            add_patients1 = addBullseyeData(bullseye_data_patients1)
+        else:
+            add_patients1 = defaultBullseyeData()
+        if len(bullseye_data_patients2) >= 1:
+            add_patients2 = addBullseyeData(bullseye_data_patients2)
+        else:
+            add_patients2 = defaultBullseyeData()
+        results.append(add_patients1)
+        results.append(add_patients2)
+        results.append(subBullseyeData(add_patients2[0], add_patients1[0]))
+
+    print(results)
+    return jsonify(results)
 
 if __name__ == '__main__':
+    preprocess_bullseyes()
     app.run(debug=True)

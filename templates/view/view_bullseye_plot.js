@@ -1,8 +1,9 @@
-function create_bullseye() {
+function create_bullseye(target, colorData, min, max, colorScheme, labels = true) {
     let width = "100%";
     let height = "auto";
 
-    const svg = d3.select("#bullseye").append("svg")
+    d3.select(target).selectAll("*").remove()
+    const svg = d3.select(target).append("svg")
         .attr("width", width)
         .attr("height", height)
         .attr("viewBox", "-120 -120 240 240"); // position and size
@@ -18,58 +19,53 @@ function create_bullseye() {
 
     let this_arc = d3.arc();
 
-    $.ajax({
-        url: "http://127.0.0.1:5000/get_bullseye/",
-        type: "POST",
-        contentType: "application/json",
-    }).done(function (response) { //response = [colordata, max, min]
-        let colorData = response[0]
-        let colorScale = d3.scaleSequential([response[2], response[1]],d3.interpolateViridis);
+    let colorScale = d3.scaleSequential([min, max],colorScheme);
 
-        var rnm1 = 0;
-        var rnm2 = 0;
-        var rn = r0;
+    var rnm1 = 0;
+    var rnm2 = 0;
+    var rn = r0;
 
-        for (let n = 1; n < n_levels; n++) {
-            rnm2 = n > 1 ? rnm1 : 0;
-            rnm1 = n > 0 ? rn : 0;
-            rn =
-                n > 0
-                    ? Math.sqrt((k + 1) * Math.pow(rnm1, 2) - k * Math.pow(rnm2, 2))
-                    : r0;
+    for (let n = 1; n < n_levels; n++) {
+        rnm2 = n > 1 ? rnm1 : 0;
+        rnm1 = n > 0 ? rn : 0;
+        rn =
+            n > 0
+                ? Math.sqrt((k + 1) * Math.pow(rnm1, 2) - k * Math.pow(rnm2, 2))
+                : r0;
 
-            console.log(n, rn, rnm1, rnm2, sigma0);
-            let arcs = Array(sigma0)
-                .fill(1)
-                .map((v, i) => {
-                    return [{
-                        innerRadius: rnm1,
-                        outerRadius: rn,
-                        startAngle: (2 * Math.PI * i) / sigma0,
-                        endAngle: (2 * Math.PI * (i + 1)) / sigma0
-                    },n,i]; //arc, level, index
-                });
+        console.log(n, rn, rnm1, rnm2, sigma0);
+        let arcs = Array(sigma0)
+            .fill(1)
+            .map((v, i) => {
+                return [{
+                    innerRadius: rnm1,
+                    outerRadius: rn,
+                    startAngle: (2 * Math.PI * i) / sigma0,
+                    endAngle: (2 * Math.PI * (i + 1)) / sigma0
+                },n,i]; //arc, level, index
+            });
 
-            pie
-                .append('g')
-                .attr('class', `level_${n}`)
-                .selectAll('path')
-                .data(arcs)
-                .join('path')
-                .attr("d", d => this_arc(d[0]))
-                .attr('fill', (d, i) => colorScale(colorData[d[1]][d[2]]))
-                .attr('stroke', 'black')
-                .on("click", (d,i) => {
-                    console.log(d[1],d[2]);
-                });
-        }
+        pie
+            .append('g')
+            .attr('class', `level_${n}`)
+            .selectAll('path')
+            .data(arcs)
+            .join('path')
+            .attr("d", d => this_arc(d[0]))
+            .attr('fill', (d, i) => colorScale(colorData[d[1]][d[2]]))
+            .attr('stroke', 'black')
+            .on("click", (d,i) => {
+                console.log(d[1],d[2]);
+            });
+    }
 
-        tippy_instances_bullseye = tippy(svg.selectAll("path").nodes(),{followCursor:true});
-        tippy_instances_bullseye.forEach((x,i) => {
-            x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]]);
-        })
+    tippy_instances_bullseye = tippy(svg.selectAll("path").nodes(),{followCursor:true});
+    tippy_instances_bullseye.forEach((x,i) => {
+        x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]]);
+    })
 
-        // labels
+    // labels
+    if (labels) {
         for (let n = n_levels; n <= n_levels; n++) {
             rnm2 = n > 1 ? rnm1 : 0;
             rnm1 = n > 0 ? rn : 0;
@@ -134,11 +130,22 @@ function create_bullseye() {
                     }
                 })
         }
+    }
+
 
         //pie.filter()
         //.style("cursor", "pointer")
         //.on("click", clicked);
 
-        return svg.node();
+    return svg.node();
+}
+
+function initialize_bullseyeplot() {
+    $.ajax({
+        url: "http://127.0.0.1:5000/get_bullseye/0",
+        type: "POST",
+        contentType: "application/json",
+    }).done(function (response) {
+        showSingleBullseye(response)
     })
 }

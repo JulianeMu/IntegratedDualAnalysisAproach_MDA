@@ -21,11 +21,14 @@ function legend({
                     marginLeft = 0,
                     ticks = width / 64,
                     tickFormat,
-                    tickValues
+                    tickValues,
+                    scaleGraphic = false,
+                    textColor = "white"
                 } = {}) {
 
+        d3.select(target).selectAll("*").remove();
         svg = d3.select(target).append("svg")
-            .attr("width", width)
+            .attr("width", scaleGraphic ? "100%" : width)
             .attr("height", height)
             .attr("viewBox", [0, 0, width, height])
             .style("overflow", "visible")
@@ -142,7 +145,7 @@ function legend({
             .attr("class", "title")
             .text(title));
 
-    svg.selectAll("text").attr("fill", "white")
+    svg.selectAll("text").attr("fill", textColor)
     return svg.node();
 }
 
@@ -159,7 +162,8 @@ function swatches({
                   }) {
     const id = "swatch";
 
-    $(target).children().remove();
+    // $(target).children().remove();
+    d3.select(target).selectAll("*").remove();
 
     d = document.createElement("div");
     d.style.display = "grid";

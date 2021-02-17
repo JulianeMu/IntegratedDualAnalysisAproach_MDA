@@ -19,7 +19,8 @@ function initialize_items_plot() {
     }
 
     initialize_carousel();
-    create_bullseye();
+    initialize_bullseyeplot();
+    //create_bullseye();
 
     let width_sort_by = 120;
 
