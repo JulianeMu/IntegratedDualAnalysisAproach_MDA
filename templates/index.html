@@ -144,42 +144,127 @@
              <div class="bullseye_set_view_class">
                  <div id="single_bullseye_view">
                      <div id="bullseye_wmh" style="position: relative; float: left; left: 5%; pointer-events: fill; width: 90%"></div>
-                     <div id="bullseye_wmh_colorbar" style="position: relative; left: 5%; width: 90%"></div>
+                     <div id="bullseye_wmh_colorbar" style="left: 5%; width: 90%; margin-left: 5%"></div>
                      <div id="bullseye_cmb" style="position: relative; float: left; left: 5%; pointer-events: fill; width: 90%"></div>
-                     <div id="bullseye_cmb_colorbar" style="position: relative; left: 5%; width: 90%"></div>
+                     <div id="bullseye_cmb_colorbar" style="left: 5%; width: 90%; margin-left: 5%"></div>
                      <div id="bullseye_epvs" style="position: relative; float: left; left: 5%; pointer-events: fill; width: 90%"></div>
-                     <div id="bullseye_epvs_colorbar" style="position: relative; left: 5%; width: 90%"></div>
+                     <div id="bullseye_epvs_colorbar" style="left: 5%; width: 90%; margin-left: 5%"></div>
                  </div>
                  <div id="cohort_bullseye_view" style="display: none">
-                     <button type = "button" onclick = "swapMedianIQR()" style="width: fit-content; min-width: 50px; margin-right: 5px">
+                     <button type = "button" onclick = "buttonSwap()" style="width: fit-content; min-width: 50px; margin-right: 5px">
                          Swap Median and IOR
                      </button>
-                     <div style="display: block"></div>
-                     <div id="id_median_heading" class="class_heading" style="margin-top: 10px; margin-left: 5px; float: left; width: 40%"></div>
-                     <div id="id_iqr_heading" class="class_heading" style="margin-top: 10px; margin-left: 5px; float: left; width: 40%"></div>
-                     <div id="bullseye_wmh_cohort" style="position: relative; float: left; pointer-events: fill; width: 70%"></div>
-                     <div id="bullseye_wmh_iqr" style="position: relative; float: left; pointer-events: fill; width: 30%; margin-top: 6vw"></div>
-                     <div id="bullseye_wmh_cohort_colorbar" style="position: relative; left: 5%; width: 90%"></div>
-                     <div id="bullseye_cmb_cohort" style="position: relative; float: left; pointer-events: fill; width: 70%"></div>
-                     <div id="bullseye_cmb_iqr" style="position: relative; float: left; pointer-events: fill; width: 30%; margin-top: 6vw"></div>
-                     <div id="bullseye_cmb_cohort_colorbar" style="position: relative; left: 5%; width: 90%"></div>
-                     <div id="bullseye_epvs_cohort" style="position: relative; float: left; pointer-events: fill; width: 70%"></div>
-                     <div id="bullseye_epvs_iqr" style="position: relative; float: left; pointer-events: fill; width: 30%; margin-top: 6vw"></div>
-                     <div id="bullseye_epvs_cohort_colorbar" style="position: relative; left: 5%; width: 90%"></div>
+                     <div style="display: block; margin-bottom: 3%"></div>
+                     <table style="width: 100%">
+                         <colgroup>
+                             <col span="1" style="width: 70%;">
+                             <col span="1" style="width: 30%;">
+                         </colgroup>
+
+                         <tr style="color: black">
+                             <td id="cohort_table_header_left" style="text-align:center">Median</td>
+                             <td id="cohort_table_header_right" style="text-align:center">IQR</td>
+                         </tr>
+                         <tr><td colspan="2"><hr></td></tr>
+                         <tr>
+                             <td><div id="bullseye_wmh_cohort" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_wmh_iqr" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                         </tr>
+                         <tr>
+                             <td colspan="2"><div id="bullseye_wmh_cohort_colorbar" style="position: relative; left: 5%; width: 90%"></div></td>
+                         </tr>
+                         <tr>
+                             <td><div id="bullseye_cmb_cohort" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_cmb_iqr" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                         </tr>
+                         <tr>
+                             <td colspan="2"><div id="bullseye_cmb_cohort_colorbar" style="position: relative; left: 5%; width: 90%"></div></td>
+                         </tr>
+                         <tr>
+                             <td><div id="bullseye_epvs_cohort" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_epvs_iqr" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                         </tr>
+                         <tr>
+                             <td colspan="2"><div id="bullseye_epvs_cohort_colorbar" style="position: relative; left: 5%; width: 90%"></div></td>
+                         </tr>
+                     </table>
                  </div>
                  <div id="sub_bullseye_view" style="display: none">
-                     <button type = "button" onclick = "swapMedianIQR()" style="width: fit-content; min-width: 50px; margin-right: 5px">
+                     <button type = "button" onclick = "buttonSwap()" style="width: fit-content; min-width: 50px; margin-right: 5px">
                          Swap Median and IOR
                      </button>
-                     <div style="display: block"> </div>
-                     <div id="bullseye_wmh_cohort1" style="position: relative; float: left; pointer-events: fill; width: 25%"></div>
+                     <div style="display: block; margin-bottom: 3%"></div>
+                     <table style="width: 100%">
+                         <colgroup>
+                             <col span="1" style="width: 24%;">
+                             <col span="1" style="width: 14%;">
+                             <col span="1" style="width: 24%;">
+                             <col span="1" style="width: 14%;">
+                             <col span="1" style="width: 24%;">
+                         </colgroup>
+
+                         <tr style="color: black">
+                             <td id="sub_table_header_left1" style="text-align:center">Median</td>
+                             <td id="sub_table_header_right1" style="text-align:center">IQR</td>
+                             <td id="sub_table_header_left2" style="text-align:center">Median</td>
+                             <td id="sub_table_header_right2" style="text-align:center">IQR</td>
+                             <td style="text-align:center">SUB</td>
+                         </tr>
+                         <tr><td colspan="5"><hr></td></tr>
+                         <tr>
+                             <td><div id="bullseye_wmh_cohort1" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_wmh_iqr1" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                             <td><div id="bullseye_wmh_cohort2" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_wmh_iqr2" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                             <td><div id="bullseye_wmh_sub" style="pointer-events: fill"></div></td>
+                         </tr>
+                         <tr>
+                             <td colspan="5">
+                                 <table style="width: 100%">
+                                     <td colspan="1"><div id="bullseye_wmh_sub_cohort_colorbar" style="width: 90%; margin-left: 5%"></div></td>
+                                     <td colspan="1"><div id="bullseye_wmh_sub_colorbar" style="width: 90%; margin-left: 5%"></div></td>
+                                 </table>
+                             </td>
+                         </tr>
+                         <tr>
+                             <td><div id="bullseye_cmb_cohort1" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_cmb_iqr1" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                             <td><div id="bullseye_cmb_cohort2" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_cmb_iqr2" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                             <td><div id="bullseye_cmb_sub" style="pointer-events: fill"></div></td>
+                         </tr>
+                         <tr>
+                             <td colspan="5">
+                                 <table style="width: 100%">
+                                     <td colspan="1"><div id="bullseye_cmb_sub_cohort_colorbar" style="width: 90%; margin-left: 5%"></div></td>
+                                     <td colspan="1"><div id="bullseye_cmb_sub_colorbar" style="width: 90%; margin-left: 5%"></div></td>
+                                 </table>
+                             </td>
+                         </tr>
+                         <tr>
+                             <td><div id="bullseye_epvs_cohort1" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_epvs_iqr1" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                             <td><div id="bullseye_epvs_cohort2" style="pointer-events: fill"></div></td>
+                             <td style="vertical-align: bottom"><div id="bullseye_epvs_iqr2" style="pointer-events: fill; margin-bottom: 5%"></div></td>
+                             <td><div id="bullseye_epvs_sub" style="pointer-events: fill"></div></td>
+                         </tr>
+                         <tr>
+                             <td colspan="5">
+                                 <table style="width: 100%">
+                                     <td colspan="1"><div id="bullseye_epvs_sub_cohort_colorbar" style="width: 90%; margin-left: 5%"></div></td>
+                                     <td colspan="1"><div id="bullseye_epvs_sub_colorbar" style="width: 90%; margin-left: 5%"></div></td>
+                                 </table>
+                             </td>
+                         </tr>
+                     </table>
+                     <!--<div id="bullseye_wmh_cohort1" style="position: relative; float: left; pointer-events: fill; width: 25%"></div>
                      <div id="bullseye_wmh_iqr1" style="position: relative; float: left; pointer-events: fill; width: 10%; margin-top: 2.5vw"></div>
                      <div id="bullseye_wmh_cohort2" style="position: relative; float: left; pointer-events: fill; width: 25%"></div>
                      <div id="bullseye_wmh_iqr2" style="position: relative; float: left; pointer-events: fill; width: 10%; margin-top: 2.5vw"></div>
                      <div id="bullseye_wmh_sub" style="position: relative; float: left; pointer-events: fill; width: 25%"></div>
                      <div style="display: block"> </div>
-                     <div id="bullseye_wmh_sub_cohort_colorbar" style="position: relative; margin-left: 20%; width: 30%; float: left"></div>
-                     <div id="bullseye_wmh_sub_colorbar" style="position: relative; margin-left: 10%; width: 30%; float: left"></div>
+                     <div id="bullseye_wmh_sub_cohort_colorbar" style="margin-left: 20%; width: 30%; float: left"></div>
+                     <div id="bullseye_wmh_sub_colorbar" style="margin-left: 10%; width: 30%; float: left"></div>
                      <div style="display: block"> </div>
                      <div id="bullseye_cmb_cohort1" style="position: relative; float: left; pointer-events: fill; width: 25%"></div>
                      <div id="bullseye_cmb_iqr1" style="position: relative; float: left; pointer-events: fill; width: 10%; margin-top: 2.5vw"></div>
@@ -187,8 +272,8 @@
                      <div id="bullseye_cmb_iqr2" style="position: relative; float: left; pointer-events: fill; width: 10%; margin-top: 2.5vw"></div>
                      <div id="bullseye_cmb_sub" style="position: relative; float: left; pointer-events: fill; width: 25%"></div>
                      <div style="display: block"> </div>
-                     <div id="bullseye_cmb_sub_cohort_colorbar" style="position: relative; margin-left: 20%; width: 30%; float: left"></div>
-                     <div id="bullseye_cmb_sub_colorbar" style="position: relative; margin-left: 10%; width: 30%; float: left"></div>
+                     <div id="bullseye_cmb_sub_cohort_colorbar" style="margin-left: 20%; width: 30%; float: left"></div>
+                     <div id="bullseye_cmb_sub_colorbar" style="margin-left: 10%; width: 30%; float: left"></div>
                      <div style="display: block"> </div>
                      <div id="bullseye_epvs_cohort1" style="position: relative; float: left; pointer-events: fill; width: 25%"></div>
                      <div id="bullseye_epvs_iqr1" style="position: relative; float: left; pointer-events: fill; width: 10%; margin-top: 2.5vw"></div>
@@ -196,8 +281,8 @@
                      <div id="bullseye_epvs_iqr2" style="position: relative; float: left; pointer-events: fill; width: 10%; margin-top: 2.5vw"></div>
                      <div id="bullseye_epvs_sub" style="position: relative; float: left; pointer-events: fill; width: 25%"></div>
                      <div style="display: block"> </div>
-                     <div id="bullseye_epvs_sub_cohort_colorbar" style="position: relative; margin-left: 20%; width: 30%; float: left"></div>
-                     <div id="bullseye_epvs_sub_colorbar" style="position: relative; margin-left: 10%; width: 30%; float: left"></div>
+                     <div id="bullseye_epvs_sub_cohort_colorbar" style="margin-left: 20%; width: 30%; float: left"></div>
+                     <div id="bullseye_epvs_sub_colorbar" style="margin-left: 10%; width: 30%; float: left"></div>-->
                  </div>
              </div>
          </div>
@@ -280,13 +365,11 @@
         $(function () {
             initialize();
             //initialize_scene_tmpwmh();
-            initialize_scene();
+            //initialize_scene();
             add_heading("id_view_selection", "View Selection");
             add_heading("id_compare_individual_selections","Compare two individual Selections")
             add_heading("id_bullseye_box", "Lesion Loads");
             add_heading("id_saved_selection_heading", "Saved Selection:");
-            add_heading("id_median_heading", "Median");
-            add_heading("id_iqr_heading", "IQR")
         });
 
 </script>

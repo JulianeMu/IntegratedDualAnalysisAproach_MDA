@@ -1,12 +1,32 @@
 stored_ids = null;
+swapButtonPressed = false;
 
 function storeIDs () {
     stored_ids = column_values_grouped[1].column_values;
     $('#ShowTwoSelections').prop('disabled', false);
     let targetDiv = document.getElementById("currentSavedSelection");
+    targetDiv.innerHTML = "";
     actives_copy.forEach( (x) => {
         let currentDiv = document.createElement("div");
-        currentDiv.innerHTML = x.dimension + ": " + x.extent;
+        let data_type = column_values_cleaned.find((y) => x.dimension === y.id).data_type;
+        let dimension_name = column_values_cleaned.find((col) => col[key_id] === x.dimension)[key_header];
+        if (data_type === id_data_type__numerical || data_type === id_data_type__date) {
+            let val_min = 0;
+            let val_max = 0;
+            if (data_type === id_data_type__numerical) {
+                val_min = y_scale_pcp_new[x.dimension].scale.invert(x.extent[1]).toFixed(2);
+                val_max = y_scale_pcp_new[x.dimension].scale.invert(x.extent[0]).toFixed(2);
+            } else {
+                let date_min = new Date(y_scale_pcp_new[x.dimension].scale.invert(x.extent[1]));
+                let date_max = new Date(y_scale_pcp_new[x.dimension].scale.invert(x.extent[0]));
+                val_min = date_min.getDate()+"."+(date_min.getMonth()+1)+"."+(date_min.getFullYear());
+                val_max = date_max.getDate()+"."+(date_max.getMonth()+1)+"."+(date_max.getFullYear());
+            }
+            currentDiv.innerHTML = dimension_name + ": [" + val_min + "; " + val_max + "]";
+        }
+        else if (data_type === id_data_type__categorical) {
+            currentDiv.innerHTML = dimension_name + ": {" + x.unique_values.join("; ") + "}";
+        }
         targetDiv.appendChild(currentDiv);
     })
 }
@@ -138,9 +158,11 @@ function showSingleSelection(){
     })
     addBullseyeplots(column_values_grouped[1].column_values, function(bullseyedata){
         current_bullseyedata = bullseyedata
-        if (column_values_grouped[1].column_values.length > 1)
+        if (column_values_grouped[1].column_values.length > 1) {
+            if (swapButtonPressed)
+                swapMedianIQR()
             showCohortBullseye(bullseyedata)
-        else
+        } else
             showSingleBullseye(bullseyedata)
     })
 }
@@ -161,11 +183,15 @@ function showSelectionComparison(comparedGroup) {
     })
     subBullseyeplots(comparedGroup, column_values_grouped[1].column_values, function(bullseyedata){
         current_bullseyedata = bullseyedata
+        resetBullseyeSelection()
+        if (swapButtonPressed)
+            swapMedianIQR()
         showSubBullseye(bullseyedata)
     })
 }
 
 function showCohortBullseye(bullseyedata) {
+    resetBullseyeSelection()
     document.getElementById("single_bullseye_view").style.display = "none"
     document.getElementById("cohort_bullseye_view").style.display = "block"
     document.getElementById("sub_bullseye_view").style.display = "none"
@@ -182,7 +208,7 @@ function showCohortBullseye(bullseyedata) {
 
     legend({
         target: "#bullseye_wmh_cohort_colorbar",
-        color: d3.scaleSequential([wmh_data[2], wmh_data[1]],color_bullseye_wmh),
+        color: d3.scaleSequential([wmh_data[2], wmh_data[1]], color_bullseye_wmh),
         title: "WMH Lesion Load",
         scaleGraphic: true,
         textColor: "black"
@@ -204,6 +230,7 @@ function showCohortBullseye(bullseyedata) {
 }
 
 function showSingleBullseye(bullseyedata) {
+    resetBullseyeSelection()
     document.getElementById("single_bullseye_view").style.display = "block"
     document.getElementById("cohort_bullseye_view").style.display = "none"
     document.getElementById("sub_bullseye_view").style.display = "none"
@@ -239,6 +266,7 @@ function showSingleBullseye(bullseyedata) {
 }
 
 function showSubBullseye(bullseyedata) {
+    resetBullseyeSelection()
     document.getElementById("single_bullseye_view").style.display = "none"
     document.getElementById("cohort_bullseye_view").style.display = "none"
     document.getElementById("sub_bullseye_view").style.display = "block"
@@ -264,7 +292,6 @@ function showSubBullseye(bullseyedata) {
     create_bullseye("#bullseye_wmh_iqr1", wmh_data1[3], wmh_combined_min, wmh_combined_max, color_bullseye_wmh, false)
     create_bullseye("#bullseye_cmb_iqr1", cmb_data1[3], cmb_combined_min, cmb_combined_max, color_bullseye_cmb, false)
     create_bullseye("#bullseye_epvs_iqr1", epvs_data1[3], epvs_combined_min, epvs_combined_max, color_bullseye_epvs, false)
-
 
     create_bullseye("#bullseye_wmh_cohort2", wmh_data2[0], wmh_combined_min, wmh_combined_max, color_bullseye_wmh)
     create_bullseye("#bullseye_cmb_cohort2", cmb_data2[0], cmb_combined_min, cmb_combined_max, color_bullseye_cmb)
@@ -327,6 +354,22 @@ function showSubBullseye(bullseyedata) {
     });
 }
 
+function buttonSwap(){
+    swapButtonPressed = !swapButtonPressed
+    swapMedianIQR()
+    // swap cohort headers
+    let tableheadertmp = document.getElementById("cohort_table_header_left").innerHTML
+    document.getElementById("cohort_table_header_left").innerHTML = document.getElementById("cohort_table_header_right").innerHTML
+    document.getElementById("cohort_table_header_right").innerHTML = tableheadertmp
+    // swap sub headers
+    tableheadertmp = document.getElementById("sub_table_header_left1").innerHTML
+    document.getElementById("sub_table_header_left1").innerHTML = document.getElementById("sub_table_header_right1").innerHTML
+    document.getElementById("sub_table_header_right1").innerHTML = tableheadertmp
+    tableheadertmp = document.getElementById("sub_table_header_left2").innerHTML
+    document.getElementById("sub_table_header_left2").innerHTML = document.getElementById("sub_table_header_right2").innerHTML
+    document.getElementById("sub_table_header_right2").innerHTML = tableheadertmp
+}
+
 function swapMedianIQR(){
     swap = function (data) {
         tmp = data[0]
@@ -357,6 +400,16 @@ function swapMedianIQR(){
             swap(current_bullseyedata[6])
             swap(current_bullseyedata[7])
             showSubBullseye(current_bullseyedata)
+        }
+    }
+}
+
+function resetBullseyeSelection() {
+    bullseye_paths = [];
+    //hide bullseye meshes
+    for (shell in bullseyecell_to_parcellationmesh) {
+        for (lobe in bullseyecell_to_parcellationmesh[shell]) {
+            bullseyecell_to_parcellationmesh[shell][lobe].visible = false;
         }
     }
 }

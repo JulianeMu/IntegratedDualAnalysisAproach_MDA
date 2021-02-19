@@ -394,6 +394,7 @@ def add_headers(response):
 def create_meshes_of_patient(patientname):
     inputDir = os.path.join('resources\\input', patientname)
     outputDir = os.path.join('resources\\output', patientname)
+    defaultDir = "resources\\input\\default"
     if not os.path.exists(outputDir):
         os.makedirs(outputDir)
 
@@ -407,6 +408,15 @@ def create_meshes_of_patient(patientname):
         filenames.extend(create_obj_brain(sitk.GetArrayFromImage(flairImage), outputDir, 800))
     else:
         filenames.extend(["brain.obj"])
+
+    if not os.path.exists(defaultDir):
+        os.mkdir(defaultDir)
+    if not len([x for x in os.listdir(defaultDir) if x.endswith(".obj") and x.startswith("parcellation")]) == 36:
+        image = sitk.ReadImage("resources\\input\\0\\bullseye_wmparc.nii.gz")
+        arr = sitk.GetArrayFromImage(image)
+        filenames.extend(createParcellationMeshes(arr))
+    else:
+        filenames.extend([x for x in os.listdir(defaultDir) if x.endswith(".obj") and x.startswith("parcellation")])
 
     # Load NIFTI labelmap
     logging.debug("Process Labelmap Data")
@@ -462,7 +472,10 @@ def create_meshes_of_patient(patientname):
 @app.route('/get_mesh_file/<string:patientname>/<string:filename>', methods=["POST"])
 def get_mesh_file(patientname,filename):
     logging.debug("get mesh file",filename)
-    return send_from_directory(os.path.join('resources\\output',patientname), filename)
+    if filename.startswith("parcellation"):
+        return send_from_directory('resources\\input\\default', filename)
+    else:
+        return send_from_directory(os.path.join('resources\\output', patientname), filename)
 
 @app.route('/get_volume_of_patient/<string:patientname>', methods=["POST"])
 def get_volume_of_patient(patientname):

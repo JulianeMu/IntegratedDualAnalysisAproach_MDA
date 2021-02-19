@@ -23,3 +23,15 @@ const color_bullseye_wmh_diverging = d3.interpolateViridis;
 const color_bullseye_cmb_diverging = d3.interpolateViridis;
 const color_bullseye_epvs_diverging = d3.interpolateViridis;
 
+//mapping brain parcellation to bullseye
+const lobe_to_index = {
+    5: 4,
+    11: 0,
+    12: 1,
+    13: 2,
+    14: 3,
+    21: 8,
+    22: 7,
+    23: 6,
+    24: 5,
+}

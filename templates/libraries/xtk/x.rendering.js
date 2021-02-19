@@ -272,6 +272,12 @@ function createData() {
   // includes the file object, file data and valid extensions for each object
     if (typeof _data == "undefined")
     {
+        bullseyecell_to_parcellationmesh = {
+            1: {},
+            2: {},
+            3: {},
+            4: {}
+        }
           _data = {
            'volume': {
              'file': [], // link to file
@@ -551,9 +557,28 @@ function preprocess_diverging_colortable(lines,title,target) {
     lines.forEach((line)=>{
         values = line.split(" ");
         if (line.length > 0 && parseInt(values[5]) !== 0 && line[0] !=='#') {
-            tick_values.push(parseInt(values[1].split("_")[1]));
-            colors.push(d3.rgb(parseInt(values[2]), parseInt(values[3]), parseInt(values[4]), parseInt(values[5])));
-            color_dict[parseInt(values[1].split("_")[1])] = [parseInt(values[2])/255, parseInt(values[3])/255, parseInt(values[4])/255];
+            let tick_value = values[1].split("_")
+            if (tick_value.length === 3)
+            {
+                tick_label = tick_value[1] + " - " + tick_value[2]
+            } else {
+                tick_label = tick_value[1]
+            }
+
+            if (tick_values.indexOf(tick_label) === -1) {
+                tick_values.push(tick_label)
+                colors.push(d3.rgb(parseInt(values[2]), parseInt(values[3]), parseInt(values[4]), parseInt(values[5])))
+
+                let color = [parseInt(values[2]) / 255, parseInt(values[3]) / 255, parseInt(values[4]) / 255]
+                let range = tick_label.split(" - ").map((x) => parseInt(x))
+                if (range.length === 2){
+                    for (let i = range[0]; i <= range[1]; i++){
+                        color_dict[i] = color;
+                    }
+                } else {
+                    color_dict[parseInt(tick_label)] = color;
+                }
+            }
         }
     })
     legend({
@@ -730,6 +755,14 @@ function createMesh(data, i) {
     mesh.filedata = data['mesh']['filedata'][i];
     mesh.color = [1, 1, 1];
 
+    if (data['mesh']['file'][i].name.startsWith("parcellation")) {
+        let filename = data['mesh']['file'][i].name.split(".")[0].split("_")[1]
+        let shell = filename[filename.length-1];
+        let lobe = lobe_to_index[filename.substring(0, filename.length-1)];
+        bullseyecell_to_parcellationmesh[shell][lobe] = mesh;
+        mesh.opacity = 0.2;
+        mesh.visible = false;
+    }
     data.mesh.meshes.push(mesh);
 
     // add the mesh

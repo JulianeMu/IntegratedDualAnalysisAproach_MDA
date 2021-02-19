@@ -269,7 +269,7 @@ def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath, 
 
     return "combined.nii.gz", finalImage, combinedColormap
 
-def create_layered_meshes(image, outputpath, filetype):
+def create_layered_meshes(image, outputpath, filetype, basename = "add_"):
     filenames = []
     image = image.transpose(2, 1, 0)
     layers = np.unique(image)
@@ -282,10 +282,10 @@ def create_layered_meshes(image, outputpath, filetype):
         spacing = np.array([1.2000000477, 0.9765999913, 3.0000000000])
         verts = verts*spacing
         verts[:, 1] = layer_image.shape[1] * spacing[1] - verts[:, 1]
-        #filenames.extend(write_multiple_obj_files(verts, faces, normals, outputpath + "\\add_wmh_" + str(int(layer))))
-        #filenames.extend(write_multiple_obj_single_file(verts, faces, normals, outputpath + "\\add_wmh_" + str(int(layer))))
-        write_single_obj_file(verts, faces, normals, outputpath + "\\add_" + str(filetype) + "_" + str(int(layer))+".obj")
-        filenames.extend(["add_" + str(filetype) + "_" + str(int(layer))+".obj"])
+        #filenames.extend(write_multiple_obj_files(verts, faces, normals, outputpath + "\\"+basename+"_wmh_" + str(int(layer))))
+        #filenames.extend(write_multiple_obj_single_file(verts, faces, normals, outputpath + "\\"+basename+"_wmh_" + str(int(layer))))
+        write_single_obj_file(verts, faces, normals, outputpath + "\\" + basename + str(filetype) + "_" + str(int(layer))+".obj")
+        filenames.extend([basename + str(filetype) + "_" + str(int(layer))+".obj"])
 
     return filenames
 
@@ -372,34 +372,55 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
 
     return "combinedcolortable.txt"
 
+
 def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, outputpath):
     """
     :param outputpath: outputpath
     :return: filename
     """
-    cmap_wmh = cm.get_cmap('Oranges', cmbOffset+1)
-    cmap_cmb = cm.get_cmap('Purples', (epvsOffset-cmbOffset)+1)
-    cmap_epvs = cm.get_cmap('Greens', (combinedOffset-epvsOffset)+1)
+    cmbOffset = 12
+    epvsOffset = 18+cmbOffset
+    combinedOffset = 100+epvsOffset
 
-    samplingColors_wmh = cmap_wmh(np.linspace(0, 1, int(cmbOffset+1)))
-    wmh_mapping = {x:y for x,y in zip(range(1,int(cmbOffset+1)),range(1,int(cmbOffset+1)))}
-    samplingColors_cmb = cmap_cmb(np.linspace(0, 1, int((epvsOffset-cmbOffset)+1)))
-    cmb_mapping = {x:y for x,y in zip(range(int(cmbOffset+1),int(epvsOffset+1)),range(1,int(epvsOffset-cmbOffset)+1))}
-    samplingColors_epvs = cmap_epvs(np.linspace(0, 1, int((combinedOffset-epvsOffset)+1)))
-    epvs_mapping = {x:y for x,y in zip(range(int(epvsOffset+1),int(combinedOffset+1)),range(1,int(combinedOffset-epvsOffset)+1))}
+    def writeBinnedColormap(numberOfColors, nameOfColormap, type, f, offset):
+        if numberOfColors > 10:
+            binSize = numberOfColors//5
+            nrOfBins = math.ceil(numberOfColors/binSize)
+            bins = [x*binSize + 1 for x in range(nrOfBins)]
+            window_label = [(bins[x], bins[x+1]-1) for x in range(len(bins)-1)]
+            if window_label[-1][-1] != numberOfColors:
+                if bins[-1] == numberOfColors:
+                    window_label.append((bins[-1],))
+                else:
+                    window_label.append((bins[-1], numberOfColors))
+            window_label = [str(x[0]) if len(x) == 1 or x[0] == x[1] else str(x[0]) + "_" + str(x[1]) for x in window_label]
+            #print("number of colors", numberOfColors, "binsize", binSize, window_label)
+            #window = np.round(np.linspace(1, numberOfColors, int(11)))
+            #window_label = [str(np.round(window[i])) + "-" + str(np.round(window[i+1]-1))  for i in range(len(window)-1)]
+            #window_center = [(float(i.split("-")[1]) + float(i.split("-")[0])) / 2 for i in window_label]
+            #window_label = [i.split("-")[1].split(".")[0] if np.floor(float(i.split("-")[1])) == np.floor(float(i.split("-")[0])) else i.split("-")[0].split(".")[0] + "_"+ i.split("-")[1].split(".")[0] for i in window_label]
+            cmap = cm.get_cmap(nameOfColormap, len(window_label))
+            #print(numberOfColors, window_center, window_label)
+        else:
+            window_label = [str(i) for i in range(1, int(numberOfColors))]
+            cmap = cm.get_cmap(nameOfColormap, len(window_label))
+            #print(numberOfColors, window_label)
+
+        for i, label in enumerate(window_label):
+            if len(label.split("_")) > 1:   #backwards compatible
+                for j in range(int(label.split("_")[0]), int(label.split("_")[1])+1):
+                    f.write(f"{str(offset+int(j))} {type}_{label} {' '.join([str(math.floor(x*255)) for x in cmap(i)])}\n")
+
+            else:
+                f.write(f"{str(offset+int(label))} {type}_{label} {' '.join([str(math.floor(x*255)) for x in cmap(i)])}\n")
 
     with open(outputpath+"/combinedcolortable.txt", "w") as f:
         f.write("# combined summedup" + " " + str(int(cmbOffset)) + " " + str(int(epvsOffset)) + " " + str(int(combinedOffset)) + "\n")
         f.write("0 background 0 0 0 0\n")
-        for i in range(0, int(cmbOffset+1)):
-            if i in wmh_mapping:
-                f.write(str(i) + " wmh_" + str(int(wmh_mapping[i])) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_wmh[wmh_mapping[i]]]) + "\n")
-        for i in range(int(cmbOffset+1), int(epvsOffset+1)):
-            if i in cmb_mapping:
-                f.write(str(i) + " cmb_" + str(int(cmb_mapping[i])) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_cmb[cmb_mapping[i]]]) + "\n")
-        for i in range(int(epvsOffset+1), int(combinedOffset+1)):
-            if i in epvs_mapping:
-                f.write(str(i) + " epvs_" + str(int(epvs_mapping[i])) + " " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[epvs_mapping[i]]]) + "\n")
+
+        writeBinnedColormap(cmbOffset, 'Oranges', "wmh", f, 0)
+        writeBinnedColormap(epvsOffset-cmbOffset, 'Purples', "cmb", f, cmbOffset)
+        writeBinnedColormap(combinedOffset-epvsOffset, 'Greens', "epvs", f, epvsOffset)
 
         f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 1\n")
         f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 1\n")
@@ -454,3 +475,8 @@ def create_divergingcolormap(minvalue, maxvalue, outputpath):
             else:
                 f.write(str(i-(max(abs(minvalue), maxvalue))) + " sub " + " ".join([str(math.floor(x*255)) for x in samplingColors[i]]) + "\n")
     return outputpath+"/subcolortable.txt"
+
+
+def createParcellationMeshes(arr, outputfolder = "resources\\input\\default"):
+    mesh_files = create_layered_meshes(arr, outputfolder, "parcellation", "")
+    return mesh_files

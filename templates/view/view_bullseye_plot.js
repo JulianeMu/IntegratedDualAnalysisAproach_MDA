@@ -25,6 +25,8 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
     var rnm2 = 0;
     var rn = r0;
 
+    var all_arcs = [];
+
     for (let n = 1; n < n_levels; n++) {
         rnm2 = n > 1 ? rnm1 : 0;
         rnm1 = n > 0 ? rn : 0;
@@ -42,22 +44,46 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
                     outerRadius: rn,
                     startAngle: (2 * Math.PI * i) / sigma0,
                     endAngle: (2 * Math.PI * (i + 1)) / sigma0
-                },n,i]; //arc, level, index
+                },n,i,0]; //arc, level, index, is active
             });
-
-        pie
-            .append('g')
-            .attr('class', `level_${n}`)
-            .selectAll('path')
-            .data(arcs)
-            .join('path')
-            .attr("d", d => this_arc(d[0]))
-            .attr('fill', (d, i) => colorScale(colorData[d[1]][d[2]]))
-            .attr('stroke', 'black')
-            .on("click", (d,i) => {
-                console.log(d[1],d[2]);
-            });
+        arcs.forEach((x) => {
+            all_arcs.push(x)
+        })
     }
+
+    let paths = pie
+        .append('g')
+        //.attr('class', `level_${n}`)
+        .selectAll('path')
+        .data(all_arcs)
+        .join('path');
+
+    paths._groups[0].forEach((x) => bullseye_paths.push(x))
+
+    paths.attr("d", d => this_arc(d[0]))
+    .attr('fill', (d, i) => colorScale(colorData[d[1]][d[2]]))
+    .attr('stroke', 'white')
+    .on("click", (d,i) => {
+        console.log(d[1],d[2]);
+        var elements = bullseye_paths.filter((x) => x.__data__[1] === d[1] && x.__data__[2] === d[2]) //lobes & shells
+        if (d[3] === 1) { //if is active
+            d[3] = 0;
+            elements.forEach((element) => {
+                element.setAttribute("stroke", "white")
+                d3.select(element).lower()
+                element.__data__[3] = 0
+            })
+            bullseyecell_to_parcellationmesh[d[1]][d[2]].visible = false
+        } else {
+            d[3] = 1;
+            elements.forEach((element) => {
+                element.setAttribute("stroke", "red")
+                d3.select(element).raise()
+                element.__data__[3] = 1
+            })
+            bullseyecell_to_parcellationmesh[d[1]][d[2]].visible = true
+        }
+    });
 
     tippy_instances_bullseye = tippy(svg.selectAll("path").nodes(),{followCursor:true});
     tippy_instances_bullseye.forEach((x,i) => {
@@ -109,25 +135,27 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
                 .data(arcs)
                 .join('text')
                 .attr("x", function (d,i) {
-                    return (rn-txt_offset)*Math.sin((9-(i+5))*theta)-2
+                    return (rn-txt_offset)*Math.sin((9-(i+5))*theta)//-2
                 })
                 .attr("y", function (d,i) {
-                    return (rn-txt_offset)*Math.cos((9-(i+5))*theta)+txt_offset/2-2
+                    return (rn-txt_offset)*Math.cos((9-(i+5))*theta)//+txt_offset/2-2
                 })
                 .text(function (d,i) {
                     return labelmapping[i]
                 })
                 .attr("text-anchor","middle")
                 .attr("font-size","10px")
+                .attr("alignment-baseline", "middle")
                 .attr("transform", function (d,i) {
                     let target_angle = 0;
                     if (i >= 3 && i < 7) {
                         target_angle = (d[0].startAngleDegree + d[0].endAngleDegree) / 2 + 180
-                        return "rotate(" + target_angle + "," + ((rn-txt_offset)*Math.sin((9-(i+5))*theta)-2) + "," + ((rn-txt_offset)*Math.cos((9-(i+5))*theta)+txt_offset/2-2) + ")"
+                        //return "rotate(" + target_angle + "," + ((rn-txt_offset)*Math.sin((9-(i+5))*theta)-2) + "," + ((rn-txt_offset)*Math.cos((9-(i+5))*theta)+txt_offset/2-2) + ")"
                     } else {
                         target_angle = (d[0].startAngleDegree + d[0].endAngleDegree) / 2
-                        return "rotate(" + target_angle + "," + ((rn-txt_offset)*Math.sin((9-(i+5))*theta)-2) + "," + ((rn-txt_offset)*Math.cos((9-(i+5))*theta)+txt_offset/2-2) + ")"
+                        //return "rotate(" + target_angle + "," + ((rn-txt_offset)*Math.sin((9-(i+5))*theta)-2) + "," + ((rn-txt_offset)*Math.cos((9-(i+5))*theta)+txt_offset/2-2) + ")"
                     }
+                    return "rotate(" + target_angle + "," + ((rn-txt_offset)*Math.sin((9-(i+5))*theta)) + "," + ((rn-txt_offset)*Math.cos((9-(i+5))*theta)) + ")"
                 })
         }
     }
