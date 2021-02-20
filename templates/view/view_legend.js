@@ -13,7 +13,7 @@ function legend({
                     color,
                     title,
                     tickSize = 6,
-                    width = 320,
+                    width = 300,
                     height = 44 + tickSize,
                     marginTop = 18,
                     marginRight = 0,
@@ -57,6 +57,8 @@ function legend({
         x = Object.assign(color.copy()
                 .interpolator(d3.interpolateRound(marginLeft, width - marginRight)),
             {range() { return [marginLeft, width - marginRight]; }});
+        //x = Object.assign(color.copy().interpolator(d3.interpolateRound(marginLeft, width - marginRight)).nice(),
+            //{range() { return [marginLeft, width - marginRight]; }});
 
         svg.append("image")
             .attr("x", marginLeft)
@@ -64,7 +66,8 @@ function legend({
             .attr("width", width - marginLeft - marginRight)
             .attr("height", height - marginTop - marginBottom)
             .attr("preserveAspectRatio", "none")
-            .attr("xlink:href", ramp(color.interpolator()).toDataURL());
+            //.attr("xlink:href", ramp(color.copy().interpolator(d3.interpolateViridis).nice().interpolator(), width).toDataURL());
+            .attr("xlink:href", ramp(color.interpolator(),width).toDataURL());
 
         // scaleSequentialQuantile doesn’t implement ticks or tickFormat.
         if (!x.ticks) {

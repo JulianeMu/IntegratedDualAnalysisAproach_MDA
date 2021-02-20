@@ -199,30 +199,38 @@ function showCohortBullseye(bullseyedata) {
     cmb_data = bullseyedata[1]
     epvs_data = bullseyedata[2]
 
-    create_bullseye("#bullseye_wmh_cohort", wmh_data[0], wmh_data[2], wmh_data[1], color_bullseye_wmh)
-    create_bullseye("#bullseye_cmb_cohort", cmb_data[0], cmb_data[2], cmb_data[1], color_bullseye_cmb)
-    create_bullseye("#bullseye_epvs_cohort", epvs_data[0], epvs_data[2], epvs_data[1], color_bullseye_epvs)
-    create_bullseye("#bullseye_wmh_iqr", wmh_data[3], wmh_data[5], wmh_data[4], color_bullseye_wmh, false)
-    create_bullseye("#bullseye_cmb_iqr", cmb_data[3], cmb_data[5], cmb_data[4], color_bullseye_cmb, false)
-    create_bullseye("#bullseye_epvs_iqr", epvs_data[3], epvs_data[5], epvs_data[4], color_bullseye_epvs, false)
+    wmh_combined_min = Math.min(wmh_data[2], wmh_data[5])
+    wmh_combined_max = Math.max(wmh_data[1], wmh_data[4])
+    cmb_combined_min = Math.min(cmb_data[2], cmb_data[5])
+    cmb_combined_max = Math.max(cmb_data[1], cmb_data[4])
+    epvs_combined_min = Math.min(epvs_data[2], epvs_data[5])
+    epvs_combined_max = Math.max(epvs_data[1], epvs_data[4])
+
+
+    create_bullseye("#bullseye_wmh_cohort", wmh_data[0], wmh_combined_min, wmh_combined_max, color_bullseye_wmh)
+    create_bullseye("#bullseye_cmb_cohort", cmb_data[0], cmb_combined_min, cmb_combined_max, color_bullseye_cmb)
+    create_bullseye("#bullseye_epvs_cohort", epvs_data[0], epvs_combined_min, epvs_combined_max, color_bullseye_epvs)
+    create_bullseye("#bullseye_wmh_iqr", wmh_data[3], wmh_combined_min, wmh_combined_max, color_bullseye_wmh, false)
+    create_bullseye("#bullseye_cmb_iqr", cmb_data[3], cmb_combined_min, cmb_combined_max, color_bullseye_cmb, false)
+    create_bullseye("#bullseye_epvs_iqr", epvs_data[3], epvs_combined_min, epvs_combined_max, color_bullseye_epvs, false)
 
     legend({
         target: "#bullseye_wmh_cohort_colorbar",
-        color: d3.scaleSequential([wmh_data[2], wmh_data[1]], color_bullseye_wmh),
+        color: d3.scaleSequential([wmh_combined_min, wmh_combined_max], color_bullseye_wmh),
         title: "WMH Lesion Load",
         scaleGraphic: true,
         textColor: "black"
     });
     legend({
         target: "#bullseye_cmb_cohort_colorbar",
-        color: d3.scaleSequential([cmb_data[2], cmb_data[1]], color_bullseye_cmb),
+        color: d3.scaleSequential([cmb_combined_min, cmb_combined_max], color_bullseye_cmb),
         title: "CMB Lesion Load",
         scaleGraphic: true,
         textColor: "black"
     });
     legend({
         target: "#bullseye_epvs_cohort_colorbar",
-        color: d3.scaleSequential([epvs_data[2], epvs_data[1]], color_bullseye_epvs),
+        color: d3.scaleSequential([epvs_combined_min, epvs_combined_max], color_bullseye_epvs),
         title: "ePVS Lesion Load",
         scaleGraphic: true,
         textColor: "black"
@@ -327,30 +335,37 @@ function showSubBullseye(bullseyedata) {
     cmb_data = bullseyedata[5]
     epvs_data = bullseyedata[8]
 
-    create_bullseye("#bullseye_wmh_sub", wmh_data[0], wmh_data[2], wmh_data[1], color_bullseye_wmh_diverging)
-    create_bullseye("#bullseye_cmb_sub", cmb_data[0], cmb_data[2], cmb_data[1], color_bullseye_cmb_diverging)
-    create_bullseye("#bullseye_epvs_sub", epvs_data[0], epvs_data[2], epvs_data[1], color_bullseye_epvs_diverging)
+    let wmh_max_abs = Math.max(Math.abs(wmh_data[2]), Math.abs(wmh_data[1]))
+    let cmb_max_abs = Math.max(Math.abs(cmb_data[2]), Math.abs(cmb_data[1]))
+    let epvs_max_abs = Math.max(Math.abs(epvs_data[2]), Math.abs(epvs_data[1]))
+
+    create_bullseye("#bullseye_wmh_sub", wmh_data[0], -wmh_max_abs, wmh_max_abs, color_bullseye_wmh_diverging)
+    create_bullseye("#bullseye_cmb_sub", cmb_data[0], -cmb_max_abs, cmb_max_abs, color_bullseye_cmb_diverging)
+    create_bullseye("#bullseye_epvs_sub", epvs_data[0], -epvs_max_abs, epvs_max_abs, color_bullseye_epvs_diverging)
 
     legend({
         target: "#bullseye_wmh_sub_colorbar",
-        color: d3.scaleSequential([wmh_data[2], wmh_data[1]], color_bullseye_wmh_diverging),
+        color: d3.scaleSequential([-wmh_max_abs, wmh_max_abs], color_bullseye_wmh_diverging),
         title: "WMH Lesion Load Differences",
         scaleGraphic: true,
-        textColor: "black"
+        textColor: "black",
+        tickFormat : function(x) {return Math.abs(x)}
     });
     legend({
         target: "#bullseye_cmb_sub_colorbar",
-        color: d3.scaleSequential([cmb_combined_min, cmb_combined_max], color_bullseye_cmb_diverging),
+        color: d3.scaleSequential([-cmb_max_abs, cmb_max_abs], color_bullseye_cmb_diverging),
         title: "CMB Lesion Load & IQR",
         scaleGraphic: true,
-        textColor: "black"
+        textColor: "black",
+        tickFormat : function(x) {return Math.abs(x)}
     });
     legend({
         target: "#bullseye_epvs_sub_colorbar",
-        color: d3.scaleSequential([epvs_combined_min, epvs_combined_max], color_bullseye_epvs_diverging),
+        color: d3.scaleSequential([-epvs_max_abs, epvs_max_abs], color_bullseye_epvs_diverging),
         title: "ePVS Lesion Load & IQR",
         scaleGraphic: true,
-        textColor: "black"
+        textColor: "black",
+        tickFormat : function(x) {return Math.abs(x)}
     });
 }
 

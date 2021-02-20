@@ -347,10 +347,34 @@ input:checked + .slider:before {
 
 .bullseye_set_view_class {
     width: calc(100% - 1*var(--main-margin));
-    height: calc(100% - 2* var(--padding) - var(--heading_height));
+    height: 90%;
     overflow: hidden;
     background-color: var(--element-background-color);
     padding: var(--padding);
     margin: var(--padding);
     position: relative;
+}
+
+.box{
+    position: relative;
+    width: 90%;     /* desired width */
+    left: 5%;
+}
+.box:before{
+    content: "";
+    display: block;
+    padding-top: min(13vh,100%);  /*What you want the height to be in relation to the width*/
+}
+
+.content{
+    position:  absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    pointer-events: fill;
+}
+
+#single_bullseye_view{
+    height: 95%;
 }

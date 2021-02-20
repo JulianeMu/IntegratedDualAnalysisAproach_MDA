@@ -50,19 +50,26 @@ def addBullseyeData(bullseye_data):
     iqr_data = dict()
     iqr_min = new_max-new_min
     iqr_max = 0
+    min_ = new_max
+    max_ = new_min
     for shell in new_data:
         iqr_data[shell] = dict()
         for lobe in new_data[shell]:
             values = []
             for data in bullseye_data[1:]:
                 values.append(data[0][shell][lobe])
-            new_data[shell][lobe] = np.median(values)
+            median_ = np.median(values)
+            if median_ > max_:
+                max_ = median_
+            if median_ < min_:
+                min_ = median_
+            new_data[shell][lobe] = median_
             iqr_data[shell][lobe] = iqr(values)
             if iqr_data[shell][lobe] > iqr_max:
                 iqr_max = iqr_data[shell][lobe]
             if iqr_data[shell][lobe] < iqr_min:
                 iqr_min = iqr_data[shell][lobe]
-    return new_data, new_max, new_min, iqr_data, iqr_max, iqr_min
+    return new_data, max_, min_, iqr_data, iqr_max, iqr_min
 
 def subBullseyeData(bullseye_data_group1, bullseye_data_group2):
     new_data = dict()

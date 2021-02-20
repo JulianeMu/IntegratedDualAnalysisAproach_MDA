@@ -107,7 +107,7 @@
          <div id="likelihood_of_correlation" class="likelihood_of_correlation_class"></div>
      </div>
      <div id="center_view" style="width:20%; height:100%; float:left">
-         <div style="display: flex">
+         <div style="display: flex; height: calc(var(--items_height) + 5px)">
              <div id="buttons" class="buttons_class" style="margin-right: 0px">
                  <div id="id_view_selection" class="class_heading"></div>
                  <div class="each_button_set_view_class">
@@ -139,15 +139,21 @@
                  </div>
              </div>
          </div>
-         <div class="bullseye_class">
+         <div class="bullseye_class" style="height: 70%">
              <div id="id_bullseye_box" class="class_heading"></div>
              <div class="bullseye_set_view_class">
                  <div id="single_bullseye_view">
-                     <div id="bullseye_wmh" style="position: relative; float: left; left: 5%; pointer-events: fill; width: 90%"></div>
+                     <div class="box">
+                         <div class="content" id="bullseye_wmh"></div>
+                     </div>
                      <div id="bullseye_wmh_colorbar" style="left: 5%; width: 90%; margin-left: 5%"></div>
-                     <div id="bullseye_cmb" style="position: relative; float: left; left: 5%; pointer-events: fill; width: 90%"></div>
+                     <div class="box">
+                         <div class="content" id="bullseye_cmb"></div>
+                     </div>
                      <div id="bullseye_cmb_colorbar" style="left: 5%; width: 90%; margin-left: 5%"></div>
-                     <div id="bullseye_epvs" style="position: relative; float: left; left: 5%; pointer-events: fill; width: 90%"></div>
+                     <div class="box">
+                         <div class="content" id="bullseye_epvs"></div>
+                     </div>
                      <div id="bullseye_epvs_colorbar" style="left: 5%; width: 90%; margin-left: 5%"></div>
                  </div>
                  <div id="cohort_bullseye_view" style="display: none">
@@ -365,11 +371,7 @@
         $(function () {
             initialize();
             //initialize_scene_tmpwmh();
-            //initialize_scene();
-            add_heading("id_view_selection", "View Selection");
-            add_heading("id_compare_individual_selections","Compare two individual Selections")
-            add_heading("id_bullseye_box", "Lesion Loads");
-            add_heading("id_saved_selection_heading", "Saved Selection:");
+            initialize_scene();
         });
 
 </script>
