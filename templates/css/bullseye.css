@@ -7,3 +7,13 @@
     width: 90%;
     margin-top: var(--padding);
 }
+
+.cohort_bullseye_legend {
+    margin-top: 5%;
+    margin-bottom: 10px;
+}
+
+.single_bullseye_legend {
+    margin-top: 5%;
+    margin-bottom: 10px;
+}

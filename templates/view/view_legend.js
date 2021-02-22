@@ -9,23 +9,27 @@ function ramp(color, n = 256) {
 }
 
 function legend({
-                    target,
-                    color,
-                    title,
-                    tickSize = 6,
-                    width = 300,
-                    height = 44 + tickSize,
-                    marginTop = 18,
-                    marginRight = 0,
-                    marginBottom = 16 + tickSize,
-                    marginLeft = 0,
-                    ticks = width / 64,
-                    tickFormat,
-                    tickValues,
-                    scaleGraphic = false,
-                    textColor = "white"
-                } = {}) {
-
+    target,
+    color,
+    title,
+    subtitle1 = "",
+    subtitle2 = "",
+    tickSize = 6,
+    width = 300,
+    height = 44 + tickSize,
+    marginTop = 18,
+    marginRight = 0,
+    marginBottom = 16 + tickSize,
+    marginLeft = 0,
+    ticks = width / 64,
+    tickFormat,
+    tickValues,
+    scaleGraphic = false,
+    textColor = "white"
+} = {}) {
+        if (subtitle1 !== "" || subtitle2 !== "") {
+            marginTop = marginTop + 15
+        }
         d3.select(target).selectAll("*").remove();
         svg = d3.select(target).append("svg")
             .attr("width", scaleGraphic ? "100%" : width)
@@ -140,13 +144,31 @@ function legend({
         .call(tickAdjust)
         .call(g => g.select(".domain").remove())
         .call(g => g.append("text")
-            .attr("x", marginLeft)
+            .attr("x", marginLeft + width/2)
+            .attr("y", subtitle1 === "" ? marginTop + marginBottom - height - 6 : marginTop + marginBottom - height - 6 - 15)
+            .attr("fill", 'white')
+            .attr("text-anchor", "middle")
+            //.attr("font-weight", "bold")
+            .attr("font-size", "12px")
+            .attr("class", "title")
+            .text(title))
+        .call(g => g.append("text")
+            .attr("x", marginLeft + width/4)
             .attr("y", marginTop + marginBottom - height - 6)
             .attr("fill", 'white')
-            .attr("text-anchor", "start")
-            .attr("font-weight", "bold")
+            .attr("text-anchor", "middle")
+            //.attr("font-weight", "bold")
             .attr("class", "title")
-            .text(title));
+            .text(subtitle1))
+        .call(g => g.append("text")
+            .attr("x", marginLeft + width/4*3)
+            .attr("y", marginTop + marginBottom - height - 6)
+            .attr("fill", 'white')
+            .attr("text-anchor", "middle")
+            //.attr("font-weight", "bold")
+            .attr("class", "title")
+            .text(subtitle2));
+
 
     svg.selectAll("text").attr("fill", textColor)
     return svg.node();

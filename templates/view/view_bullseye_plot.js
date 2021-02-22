@@ -62,14 +62,14 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
 
     paths.attr("d", d => this_arc(d[0]))
     .attr('fill', (d, i) => colorScale(colorData[d[1]][d[2]]))
-    .attr('stroke', 'white')
+    .attr('stroke', 'grey')
     .on("click", (d,i) => {
         console.log(d[1],d[2]);
         var elements = bullseye_paths.filter((x) => x.__data__[1] === d[1] && x.__data__[2] === d[2]) //lobes & shells
         if (d[3] === 1) { //if is active
             d[3] = 0;
             elements.forEach((element) => {
-                element.setAttribute("stroke", "white")
+                element.setAttribute("stroke", "grey")
                 d3.select(element).lower()
                 element.__data__[3] = 0
             })
@@ -77,7 +77,7 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
         } else {
             d[3] = 1;
             elements.forEach((element) => {
-                element.setAttribute("stroke", "red")
+                element.setAttribute("stroke", "black")
                 d3.select(element).raise()
                 element.__data__[3] = 1
             })
@@ -144,7 +144,7 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
                     return labelmapping[i]
                 })
                 .attr("text-anchor","middle")
-                .attr("font-size","10px")
+                .attr("font-size","16px")
                 .attr("alignment-baseline", "middle")
                 .attr("transform", function (d,i) {
                     let target_angle = 0;

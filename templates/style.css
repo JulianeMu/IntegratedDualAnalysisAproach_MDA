@@ -312,14 +312,15 @@ input:checked + .slider:before {
 }
 
 .buttons_class{
-    width: calc(50% - 2*var(--padding));
+    /*width: calc(50% - 2*var(--padding));*/
     /*height: fit-content;*/
+    width: 100%;
     overflow: hidden;
     background-color: var(--items-background-color);
     padding: var(--padding);
     margin: calc(2*var(--padding));
     margin-top: 0px;
-    float: left;
+    /*float: left;*/
     position: relative;
     pointer-events: all;
 }
@@ -347,7 +348,7 @@ input:checked + .slider:before {
 
 .bullseye_set_view_class {
     width: calc(100% - 1*var(--main-margin));
-    height: 90%;
+    height: 95%;
     overflow: hidden;
     background-color: var(--element-background-color);
     padding: var(--padding);
@@ -363,7 +364,7 @@ input:checked + .slider:before {
 .box:before{
     content: "";
     display: block;
-    padding-top: min(13vh,100%);  /*What you want the height to be in relation to the width*/
+    padding-top: min(20vh,100%);  /*What you want the height to be in relation to the width*/
 }
 
 .content{

@@ -1,7 +1,7 @@
 const meshlabelmap_color = {
-    'wmh': [1, 0.3 ,0.6],
-    'cmb': [0.3, 1, 0],
-    'epvs': [0, 0.3, 1]
+    'wmh': [1, 0.55 ,0.2],
+    'cmb': [142/255, 68/255, 173/255],
+    'epvs': [46/255, 204/255, 113/255]
 };
 
 // 3D and 2D views
@@ -10,18 +10,18 @@ const color_overlap_wmh_cmb
 const color_overlap_cmb_epvs
 const color_overlap_wmh_epvs*/
 
-const color_hovered_mesh = [1,1,1];
-const color_selected_mesh = [0,1,1];
+const color_hovered_mesh = [247/255, 220/255, 111/255];
+const color_selected_mesh = [1,1,0.7];
 
 
 // bullseye plots
-const color_bullseye_wmh = d3.interpolateViridis;
-const color_bullseye_cmb = d3.interpolateViridis;
-const color_bullseye_epvs = d3.interpolateViridis;
+const color_bullseye_wmh = d3.interpolateOranges;
+const color_bullseye_cmb = d3.interpolatePurples;
+const color_bullseye_epvs = d3.interpolateGreens;
 
-const color_bullseye_wmh_diverging = d3.interpolateViridis;
-const color_bullseye_cmb_diverging = d3.interpolateViridis;
-const color_bullseye_epvs_diverging = d3.interpolateViridis;
+const color_bullseye_wmh_diverging = d3.interpolatePuOr;
+const color_bullseye_cmb_diverging = d3.interpolateRdBu;
+const color_bullseye_epvs_diverging = d3.interpolatePuOr;
 
 //mapping brain parcellation to bullseye
 const lobe_to_index = {

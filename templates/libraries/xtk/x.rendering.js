@@ -503,16 +503,16 @@ function preprocess_colortable(event) {
         values = lines[0].split(" ");
         combined_colortable = {};
         if (values[1] === "combined" && values[2] === "diverging"){
-            preprocess_diverging_combined_colortable(lines);
             combined_colortable.type = "diverging";
+            preprocess_diverging_combined_colortable(lines);
         }
         else if (values[1] === "combined" && values[2] === "summedup"){
-            preprocess_diverging_combined_colortable(lines)
             combined_colortable.type = "summedup";
+            preprocess_diverging_combined_colortable(lines)
         }
         else if (values[1] === "combined" && values[2].startsWith("binary")){
-            preprocessing_swatches_colortable(lines)
             combined_colortable.type = "binary";
+            preprocessing_swatches_colortable(lines)
             d3.select("#colormap_wmh").selectAll("*").remove();
             d3.select("#colormap_cmb").selectAll("*").remove();
             d3.select("#colormap_epvs").selectAll("*").remove();
@@ -552,6 +552,7 @@ function preprocess_diverging_colortable(lines,title,target) {
     color_dict = {}
     values = [];
     tick_values = [];
+    tick_values_raw = [];
     colors = [];
 
     lines.forEach((line)=>{
@@ -560,41 +561,54 @@ function preprocess_diverging_colortable(lines,title,target) {
             let tick_value = values[1].split("_")
             if (tick_value.length === 3)
             {
-                tick_label = tick_value[1] + " - " + tick_value[2]
+                let num1 = Math.abs(Number(tick_value[1]))
+                let num2 = Math.abs(Number(tick_value[2]))
+                tick_label = Math.min(num1,num2) + " - " + Math.max(num1,num2)
+                tick_label_raw = tick_value[1] + " - " + tick_value[2]
             } else {
-                tick_label = tick_value[1]
+                tick_label = Math.abs(Number(tick_value[1]))
+                tick_label_raw = tick_value[1]
             }
 
-            if (tick_values.indexOf(tick_label) === -1) {
+            if (tick_values_raw.indexOf(tick_label_raw) === -1) {
                 tick_values.push(tick_label)
+                tick_values_raw.push(tick_label_raw)
                 colors.push(d3.rgb(parseInt(values[2]), parseInt(values[3]), parseInt(values[4]), parseInt(values[5])))
 
                 let color = [parseInt(values[2]) / 255, parseInt(values[3]) / 255, parseInt(values[4]) / 255]
-                let range = tick_label.split(" - ").map((x) => parseInt(x))
+                let range = tick_label_raw.split(" - ").map((x) => parseInt(x))
                 if (range.length === 2){
                     for (let i = range[0]; i <= range[1]; i++){
                         color_dict[i] = color;
                     }
                 } else {
-                    color_dict[parseInt(tick_label)] = color;
+                    color_dict[parseInt(tick_label_raw)] = color;
                 }
             }
         }
     })
     legend({
         target: target,
-        color: d3.scaleOrdinal(tick_values, colors),
-        title: title,
-        height: 50,
-        tickValues: tick_values,
-        tickSize: 0
+        color: d3.scaleOrdinal(tick_values_raw, colors),
+        title: combined_colortable.type === "diverging" ? title + " Dominance" : title,
+        subtitle1: combined_colortable.type === "diverging" ? "Subset 1" : "",
+        subtitle2: combined_colortable.type === "diverging" ? "Subset 2" : "",
+        height: combined_colortable.type === "diverging" ? 50 + 15 : 50,
+        tickValues: tick_values_raw,
+        tickSize: 0,
+        tickFormat: function (tick_label){
+            tick_value = tick_label.split(" - ")
+            let num1 = Math.abs(Number(tick_value[0]))
+            let num2 = Math.abs(Number(tick_value[1]))
+            return "" + Math.min(num1,num2) + " - " + Math.max(num1,num2)
+        }
     })
 
     return color_dict;
 }
 
 function preprocess_diverging_combined_colortable(lines) {
-    combined_colortable = {}
+    //combined_colortable = {}
     wmh_data = [];
     cmb_data = [];
     epvs_data = [];

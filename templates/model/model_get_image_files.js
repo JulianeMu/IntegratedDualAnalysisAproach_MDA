@@ -125,8 +125,8 @@ function initialize_scene(callback) {
         })
     });*/
 
-    add_heading("id_view_selection", "View Selection");
-    add_heading("id_compare_individual_selections","Compare two individual Selections")
+    add_heading("id_view_selection", "One Subset");
+    add_heading("id_compare_individual_selections","Two Subsets")
     add_heading("id_bullseye_box", "Lesion Loads");
     add_heading("id_saved_selection_heading", "Saved Selection:");
 }

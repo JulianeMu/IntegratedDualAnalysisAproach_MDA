@@ -1,5 +1,7 @@
 stored_ids = null;
 swapButtonPressed = false;
+isVisibleCohorts = true;
+isVisibleDifference = true;
 
 function storeIDs () {
     stored_ids = column_values_grouped[1].column_values;
@@ -190,6 +192,8 @@ function showSelectionComparison(comparedGroup) {
     })
 }
 
+// Bullseye Plots
+
 function showCohortBullseye(bullseyedata) {
     resetBullseyeSelection()
     document.getElementById("single_bullseye_view").style.display = "none"
@@ -220,21 +224,24 @@ function showCohortBullseye(bullseyedata) {
         title: "WMH Lesion Load",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
     legend({
         target: "#bullseye_cmb_cohort_colorbar",
         color: d3.scaleSequential([cmb_combined_min, cmb_combined_max], color_bullseye_cmb),
         title: "CMB Lesion Load",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
     legend({
         target: "#bullseye_epvs_cohort_colorbar",
         color: d3.scaleSequential([epvs_combined_min, epvs_combined_max], color_bullseye_epvs),
         title: "ePVS Lesion Load",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
 }
 
 function showSingleBullseye(bullseyedata) {
@@ -256,21 +263,24 @@ function showSingleBullseye(bullseyedata) {
         title: "WMH Lesion Load",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
     legend({
         target: "#bullseye_cmb_colorbar",
         color: d3.scaleSequential([cmb_data[2], cmb_data[1]], color_bullseye_cmb),
         title: "CMB Lesion Load",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
     legend({
         target: "#bullseye_epvs_colorbar",
         color: d3.scaleSequential([epvs_data[2], epvs_data[1]], color_bullseye_epvs),
         title: "ePVS Lesion Load",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
 }
 
 function showSubBullseye(bullseyedata) {
@@ -314,21 +324,24 @@ function showSubBullseye(bullseyedata) {
         title: "WMH Lesion Load & IQR",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
     legend({
         target: "#bullseye_cmb_sub_cohort_colorbar",
         color: d3.scaleSequential([cmb_combined_min, cmb_combined_max],color_bullseye_cmb),
         title: "CMB Lesion Load & IQR",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
     legend({
         target: "#bullseye_epvs_sub_cohort_colorbar",
         color: d3.scaleSequential([epvs_combined_min, epvs_combined_max],color_bullseye_epvs),
         title: "ePVS Lesion Load & IQR",
         scaleGraphic: true,
         textColor: "black"
-    });
+    })
+        .style.height = "auto";
 
 
     wmh_data = bullseyedata[2] //[colordata, max, min]
@@ -346,27 +359,39 @@ function showSubBullseye(bullseyedata) {
     legend({
         target: "#bullseye_wmh_sub_colorbar",
         color: d3.scaleSequential([-wmh_max_abs, wmh_max_abs], color_bullseye_wmh_diverging),
-        title: "WMH Lesion Load Differences",
+        title: "WMH Lesion Load Dominance",
+        subtitle1: "Subset 1",
+        subtitle2: "Subset 2",
+        height: 50 + 15,
         scaleGraphic: true,
         textColor: "black",
         tickFormat : function(x) {return Math.abs(x)}
-    });
+    })
+        .style.height = "auto";
     legend({
         target: "#bullseye_cmb_sub_colorbar",
         color: d3.scaleSequential([-cmb_max_abs, cmb_max_abs], color_bullseye_cmb_diverging),
-        title: "CMB Lesion Load & IQR",
+        title: "CMB Lesion Load Dominance",
+        subtitle1: "Subset 1",
+        subtitle2: "Subset 2",
+        height: 50 + 15,
         scaleGraphic: true,
         textColor: "black",
         tickFormat : function(x) {return Math.abs(x)}
-    });
+    })
+        .style.height = "auto";
     legend({
         target: "#bullseye_epvs_sub_colorbar",
         color: d3.scaleSequential([-epvs_max_abs, epvs_max_abs], color_bullseye_epvs_diverging),
-        title: "ePVS Lesion Load & IQR",
+        title: "ePVS Lesion Load Dominance",
+        subtitle1: "Subset 1",
+        subtitle2: "Subset 2",
+        height: 50 + 15,
         scaleGraphic: true,
         textColor: "black",
         tickFormat : function(x) {return Math.abs(x)}
-    });
+    })
+        .style.height = "auto";
 }
 
 function buttonSwap(){
@@ -427,4 +452,60 @@ function resetBullseyeSelection() {
             bullseyecell_to_parcellationmesh[shell][lobe].visible = false;
         }
     }
+}
+
+function buttonToggleCohorts(){
+    isVisibleCohorts = !isVisibleCohorts;
+    document.getElementById("toggle_button_bep_sub").disabled = !isVisibleCohorts;
+    adjustTable()
+}
+
+function buttonToggleDifference(){
+    isVisibleDifference = !isVisibleDifference;
+    document.getElementById("toggle_button_bep_cohorts").disabled = !isVisibleDifference;
+    adjustTable()
+}
+
+function adjustTable() {
+    let col_width
+
+    if (isVisibleCohorts && isVisibleDifference){
+        col_width = [24,14,24,14,24]
+        document.getElementById("sub_table_header_subset1").style.width = null
+        document.getElementById("sub_table_header_subset1").style.display = null
+        document.getElementById("sub_table_header_subset2").style.width = null
+        document.getElementById("sub_table_header_subset2").style.display = null
+        document.getElementById("sub_table_header_subsetempty").style.width = null
+    } else if (isVisibleCohorts) {
+        col_width = [30,20,30,20,0]
+        document.getElementById("sub_table_header_subset1").style.width = "50%"
+        document.getElementById("sub_table_header_subset1").style.display = null
+        document.getElementById("sub_table_header_subset2").style.width = "50%"
+        document.getElementById("sub_table_header_subset2").style.display = null
+        document.getElementById("sub_table_header_subsetempty").style.width = "0"
+    } else if (isVisibleDifference) {
+        col_width = [0,0,0,0,100]
+        document.getElementById("sub_table_header_subset1").style.width = "0"
+        document.getElementById("sub_table_header_subset1").style.display = "none"
+        document.getElementById("sub_table_header_subset2").style.width = "0"
+        document.getElementById("sub_table_header_subset2").style.display = "none"
+        document.getElementById("sub_table_header_subsetempty").style.width = "100%"
+    } else{ //empty
+    }
+    $("tbody","#id_bullseye_table_sub").find("tr").each((i,x) => {
+        if(x.children.length===5){
+            for(let y = 0; y < 5; y++) {
+                if(col_width[y] === 0){
+                    x.children[y].style.display = "none"
+                } else {
+                    x.children[y].style.display = null
+                }
+                x.children[y].style.width = ""+col_width[y]+"%"
+            }
+        }
+        if(x.children.length===2){
+            x.children[0].style.display = !isVisibleCohorts ? "none" : null
+            x.children[1].style.display = !isVisibleDifference ? "none" : null
+        }
+    })
 }
