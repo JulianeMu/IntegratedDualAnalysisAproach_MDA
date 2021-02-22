@@ -35,6 +35,7 @@ function storeIDs () {
 
 function deleteIDs() {
     stored_ids = null;
+    document.getElementById("currentSavedSelection").innerHTML = "";
     $('#ShowTwoSelections').prop('disabled', true);
 }
 

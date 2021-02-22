@@ -19,7 +19,7 @@ const color_bullseye_wmh = d3.interpolateOranges;
 const color_bullseye_cmb = d3.interpolatePurples;
 const color_bullseye_epvs = d3.interpolateGreens;
 
-const color_bullseye_wmh_diverging = d3.interpolatePuOr;
+const color_bullseye_wmh_diverging = d3.interpolatePiYG;
 const color_bullseye_cmb_diverging = d3.interpolateRdBu;
 const color_bullseye_epvs_diverging = d3.interpolatePuOr;
 
