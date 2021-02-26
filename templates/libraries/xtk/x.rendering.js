@@ -196,20 +196,20 @@ function updateLinkedViews() {
 
     // if volume data exists
     for (let i = 0; i < _data.mesh.meshes.length; i++){
-        if(currentVolume !== null && _data.mesh.meshes[i].moved == false) {
-            _data.mesh.meshes[i].moved = true;
-            _data.mesh.meshes[i].transform.translateX(currentVolume.bbox[0]);
-            _data.mesh.meshes[i].transform.translateY(currentVolume.bbox[2]);
-            _data.mesh.meshes[i].transform.translateZ(currentVolume.bbox[4]);
+        if(currentVolume !== null && _data.mesh.meshes[i].moved === false) {
+            _data.mesh.meshes[i].moved = true
+            _data.mesh.meshes[i].transform.Q[12] = 128 - currentVolume.s[0]
+            _data.mesh.meshes[i].transform.Q[13] = 128 - currentVolume.s[1]
+            _data.mesh.meshes[i].transform.Q[14] = 128 - currentVolume.s[2]
             console.log("mesh translate");
         }
     }
     for (let i = 0; i < _data.meshlabelmap.meshes.length; i++){
-        if(currentVolume !== null && _data.meshlabelmap.meshes[i].moved == false) {
-            _data.meshlabelmap.meshes[i].moved = true;
-            _data.meshlabelmap.meshes[i].transform.translateX(currentVolume.bbox[0]);
-            _data.meshlabelmap.meshes[i].transform.translateY(currentVolume.bbox[2]);
-            _data.meshlabelmap.meshes[i].transform.translateZ(currentVolume.bbox[4]);
+        if(currentVolume !== null && _data.meshlabelmap.meshes[i].moved === false) {
+            _data.meshlabelmap.meshes[i].moved = true
+            _data.meshlabelmap.meshes[i].transform.Q[12] = 128 - currentVolume.s[0]
+            _data.meshlabelmap.meshes[i].transform.Q[13] = 128 - currentVolume.s[1]
+            _data.meshlabelmap.meshes[i].transform.Q[14] = 128 - currentVolume.s[2]
             console.log("meshlabelmap translate");
         }
     }
@@ -278,6 +278,12 @@ function createData() {
             3: {},
             4: {}
         }
+        selected_parcellations = {
+            1: {0:false, 1:false, 2:false, 3:false, 4:false, 5:false, 6:false, 7:false, 8:false},
+            2: {0:false, 1:false, 2:false, 3:false, 4:false, 5:false, 6:false, 7:false, 8:false},
+            3: {0:false, 1:false, 2:false, 3:false, 4:false, 5:false, 6:false, 7:false, 8:false},
+            4: {0:false, 1:false, 2:false, 3:false, 4:false, 5:false, 6:false, 7:false, 8:false}
+        }
           _data = {
            'volume': {
              'file': [], // link to file
@@ -315,7 +321,10 @@ function createData() {
               'extensions': ['STL', 'VTK', 'FSM', 'SMOOTHWM', 'INFLATED', 'SPHERE',
                   'PIAL', 'ORIG', 'OBJ'],
               'dictionary' : {},
-              'type' : []
+              'type' : [],
+              'wmh_threshold': [],
+              'cmb_threshold': [],
+              'epvs_threshold': []
           },
           'lesionmetadata': {
               'file': [],
@@ -354,6 +363,8 @@ function read(files) {
 };
 
 function sortFileTypes(files) {
+    updated_labelmap = false;
+    updated_volume = false;
     for ( var i = 0; i < files.length; i++) {
 
         var f = files[i];
@@ -653,7 +664,7 @@ function parse(data) {
             createVolume(data, i);
         }
     } else {
-        if (_data.updated_labelmap) {
+        if (updated_labelmap) {
             for (let i = 0; i < data['labelmap']['file'].length; i++) {
                 if (data['labelmap']["volumes"].length - 1 >= i)
                     continue;
@@ -683,6 +694,15 @@ function parse(data) {
 
             // we have a mesh
             createMeshLabelmap(data, i);
+        }
+        if (_data.meshlabelmap.wmh_threshold.length > 0){
+            thresholdMeshLabelmaps(_data.meshlabelmap.wmh_threshold, "wmh");
+        }
+        if (_data.meshlabelmap.cmb_threshold.length > 0){
+          thresholdMeshLabelmaps(_data.meshlabelmap.cmb_threshold, "cmb");
+        }
+        if (_data.meshlabelmap.epvs_threshold.length > 0){
+          thresholdMeshLabelmaps(_data.meshlabelmap.epvs_threshold, "epvs");
         }
     }
 
@@ -762,25 +782,36 @@ function createLabelmap(data, i) {
     switchToLabelmap(data.labelmap.volumes.length - 1);
 }
 function createMesh(data, i) {
-    mesh = new X.mesh();
-    mesh.pickable = false;
-    mesh.moved = false;
-    mesh.file = data['mesh']['file'][i].name;
-    mesh.filedata = data['mesh']['filedata'][i];
-    mesh.color = [1, 1, 1];
+    let tmp_mesh = new X.mesh();
+    tmp_mesh.pickable = false;
+    tmp_mesh.moved = false;
+    tmp_mesh.file = data['mesh']['file'][i].name;
+    tmp_mesh.filedata = data['mesh']['filedata'][i];
+    tmp_mesh.color = [1, 1, 1];
 
     if (data['mesh']['file'][i].name.startsWith("parcellation")) {
         let filename = data['mesh']['file'][i].name.split(".")[0].split("_")[1]
         let shell = filename[filename.length-1];
         let lobe = lobe_to_index[filename.substring(0, filename.length-1)];
-        bullseyecell_to_parcellationmesh[shell][lobe] = mesh;
-        mesh.opacity = 0.2;
-        mesh.visible = false;
+        bullseyecell_to_parcellationmesh[shell][lobe] = tmp_mesh;
+        tmp_mesh.opacity = 0.2;
+        tmp_mesh.visible = false;
+    } else {
+        mesh = tmp_mesh
     }
-    data.mesh.meshes.push(mesh);
+
+    tmp_mesh.transform.flipX()
+    tmp_mesh.transform.flipY()
+    tmp_mesh.transform.flipZ()
+
+    tmp_mesh.transform.Q[12] = 128 - currentVolume.s[0]
+    tmp_mesh.transform.Q[13] = 128 - currentVolume.s[1]
+    tmp_mesh.transform.Q[14] = 128 - currentVolume.s[2]
+
+    data.mesh.meshes.push(tmp_mesh);
 
     // add the mesh
-    ren3d.add(mesh);
+    ren3d.add(tmp_mesh);
 }
 function createMeshLabelmap(data, i) {
     meshlabelmap = new X.mesh();
@@ -796,6 +827,15 @@ function createMeshLabelmap(data, i) {
     } else {
         meshlabelmap.color = meshlabelmap_color[data['meshlabelmap']['type'][i]];
     }
+
+    meshlabelmap.transform.flipX()
+    meshlabelmap.transform.flipY()
+    meshlabelmap.transform.flipZ()
+
+    meshlabelmap.transform.Q[12] = 128 - currentVolume.s[0]
+    meshlabelmap.transform.Q[13] = 128 - currentVolume.s[1]
+    meshlabelmap.transform.Q[14] = 128 - currentVolume.s[2]
+
     data.meshlabelmap.dictionary[meshlabelmap.id] = meshlabelmap.file;
     data.meshlabelmap.meshes.push(meshlabelmap);
 
@@ -955,7 +995,11 @@ function initializeHovering() {
         var y = e.pageY - pos.y;
         var coord = "x=" + x + ", y=" + y;
         var c = this.getContext('2d');
-        var mesh_id = ren3d.pick(x,y);
+        let mesh_id = ren3d.pick(x,y);
+        while (mesh_id !== 0 && ren3d.get(mesh_id).f !== "mesh") {
+            ren3d.get(mesh_id).pickable = false;
+            mesh_id = ren3d.pick(x,y);
+        }
         if (mesh_id in _data.meshlabelmap.dictionary) {
             //console.log(x, y, mesh_id, _data.meshlabelmap.dictionary[mesh_id]);
             if (mesh_id in hovered_element) {
@@ -1045,7 +1089,7 @@ function createTooltip(x,y,mesh_id){
     var volume = "na";
     for (let i = 0; i < _data.lesionmetadata.metadata.length; i++) {
         if (mesh_name in _data.lesionmetadata.metadata[i]) {
-            volume = _data["lesionmetadata"]["metadata"][i][mesh_name].volume.toFixed(4);
+            volume = _data["lesionmetadata"]["metadata"][i][mesh_name].volume.toFixed(2);
         }
     }
 

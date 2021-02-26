@@ -4,7 +4,7 @@ isVisibleCohorts = true;
 isVisibleDifference = true;
 
 function storeIDs () {
-    stored_ids = column_values_grouped[1].column_values;
+    stored_ids = getPatientIDs();
     $('#ShowTwoSelections').prop('disabled', false);
     let targetDiv = document.getElementById("currentSavedSelection");
     targetDiv.innerHTML = "";
@@ -39,15 +39,32 @@ function deleteIDs() {
     $('#ShowTwoSelections').prop('disabled', true);
 }
 
+function getPatientIDs() {
+    for (let column in column_values_grouped){
+        column = column_values_grouped[column]
+        if (column.id === "id_index")
+            return column.column_values
+    }
+}
+
 function showComparisonWithAll() {
-    showSelectionComparison(column_values_initially[0].column_values)
+    for (let column in column_values_initially){
+        column = column_values_initially[column]
+        if (column.id === "id_index")
+            return showSelectionComparison(column.column_values)
+    }
 }
 
 function showComparisonWithRemaining() {
-    var remainingIDs = column_values_initially[0].column_values.filter((x) => {
-        return column_values_grouped[1].column_values.indexOf(x) === -1
-    })
-    showSelectionComparison(remainingIDs)
+    for (let column in column_values_initially){
+        column = column_values_initially[column]
+        if (column.id === "id_index") {
+            var remainingIDs = column.column_values.filter((x) => {
+                return getPatientIDs().indexOf(x) === -1
+            })
+            showSelectionComparison(remainingIDs)
+        }
+    }
 }
 
 function showComparisonNewSelection() {
@@ -60,8 +77,8 @@ function addPatientLabelmaps(patientIDs, callback) {
         type: "POST",
         contentType: "application/json",
         data: JSON.stringify({"message": patientIDs})
-    }).done(function (meshfilenames) {
-        callback(meshfilenames)
+    }).done(function (response) {
+        callback(response.meshfilenames)
     })
 }
 
@@ -83,8 +100,8 @@ function subPatientLabelmaps(patientIDs, patientIDs2, callback) {
         type: "POST",
         contentType: "application/json",
         data: JSON.stringify({"IDs1": patientIDs, "IDs2": patientIDs2})
-    }).done(function (meshfilenames) {
-        callback(meshfilenames)
+    }).done(function (response) {
+        callback(response.meshfilenames)
     })
 }
 
@@ -146,7 +163,7 @@ function loadMeshes(meshfilenames, onFileLoadedCallback){
 }
 
 function showSingleSelection(){
-    addPatientLabelmaps(column_values_grouped[1].column_values, function(filenames){
+    addPatientLabelmaps(getPatientIDs(), function(filenames){
         var total_files = filenames.length+2 //volume and combinedlabelmap
         var loaded_files = []
         var onFileLoaded = function (file) {
@@ -155,23 +172,23 @@ function showSingleSelection(){
                 read(loaded_files)
             }
         }
-        loadFlair(column_values_grouped[1].column_values[0], onFileLoaded)
+        loadFlair(getPatientIDs()[0], onFileLoaded)
         loadCombined(onFileLoaded)
         loadMeshes(filenames, onFileLoaded)
     })
-    addBullseyeplots(column_values_grouped[1].column_values, function(bullseyedata){
-        current_bullseyedata = bullseyedata
-        if (column_values_grouped[1].column_values.length > 1) {
+    addBullseyeplots(getPatientIDs(), function(response){
+        current_bullseyedata = response.bullseyedata
+        if (getPatientIDs().length > 1) {
             if (swapButtonPressed)
                 swapMedianIQR()
-            showCohortBullseye(bullseyedata)
+            showCohortBullseye(response.bullseyedata)
         } else
-            showSingleBullseye(bullseyedata)
+            showSingleBullseye(response.bullseyedata)
     })
 }
 
 function showSelectionComparison(comparedGroup) {
-    subPatientLabelmaps(comparedGroup, column_values_grouped[1].column_values, function(filenames){
+    subPatientLabelmaps(comparedGroup, getPatientIDs(), function(filenames){
         var total_files = filenames.length+2 //volume and combinedlabelmap
         var loaded_files = []
         var onFileLoaded = function (file) {
@@ -180,29 +197,68 @@ function showSelectionComparison(comparedGroup) {
                 read(loaded_files)
             }
         }
-        loadFlair(column_values_grouped[1].column_values[0], onFileLoaded)
+        loadFlair(getPatientIDs()[0], onFileLoaded)
         loadCombined(onFileLoaded)
         loadMeshes(filenames, onFileLoaded)
     })
-    subBullseyeplots(comparedGroup, column_values_grouped[1].column_values, function(bullseyedata){
-        current_bullseyedata = bullseyedata
+    subBullseyeplots(comparedGroup, getPatientIDs(), function(response){
+        current_bullseyedata = response.bullseyedata
         resetBullseyeSelection()
         if (swapButtonPressed)
             swapMedianIQR()
-        showSubBullseye(bullseyedata)
+        showSubBullseye(response.bullseyedata)
     })
 }
 
 // Bullseye Plots
+
+function showSingleBullseye(bullseyedata) {
+    resetBullseyeSelection()
+    document.getElementById("single_bullseye_view").style.display = "block"
+    document.getElementById("cohort_bullseye_view").style.display = "none"
+    document.getElementById("sub_bullseye_view").style.display = "none"
+    wmh_data = bullseyedata.wmh //[colordata, max, min, iqr, iqrmax, iqrmin]
+    cmb_data = bullseyedata.cmb
+    epvs_data = bullseyedata.epvs
+
+    create_bullseye("#bullseye_wmh", wmh_data[0], wmh_data[2], wmh_data[1], color_bullseye_wmh)
+    create_bullseye("#bullseye_cmb", cmb_data[0], cmb_data[2], cmb_data[1], color_bullseye_cmb)
+    create_bullseye("#bullseye_epvs", epvs_data[0], epvs_data[2], epvs_data[1], color_bullseye_epvs)
+
+    legend({
+        target: "#bullseye_wmh_colorbar",
+        color: d3.scaleSequential([wmh_data[2], wmh_data[1]],color_bullseye_wmh),
+        title: "WMH Lesion Load",
+        scaleGraphic: true,
+        textColor: "black"
+    })
+        .style.height = "auto";
+    legend({
+        target: "#bullseye_cmb_colorbar",
+        color: d3.scaleSequential([cmb_data[2], cmb_data[1]], color_bullseye_cmb),
+        title: "CMB Lesion Load",
+        scaleGraphic: true,
+        textColor: "black"
+    })
+        .style.height = "auto";
+    legend({
+        target: "#bullseye_epvs_colorbar",
+        color: d3.scaleSequential([epvs_data[2], epvs_data[1]], color_bullseye_epvs),
+        title: "ePVS Lesion Load",
+        scaleGraphic: true,
+        textColor: "black"
+    })
+        .style.height = "auto";
+}
 
 function showCohortBullseye(bullseyedata) {
     resetBullseyeSelection()
     document.getElementById("single_bullseye_view").style.display = "none"
     document.getElementById("cohort_bullseye_view").style.display = "block"
     document.getElementById("sub_bullseye_view").style.display = "none"
-    wmh_data = bullseyedata[0] //[colordata, max, min, iqr, iqrmax, iqrmin]
-    cmb_data = bullseyedata[1]
-    epvs_data = bullseyedata[2]
+    wmh_data = bullseyedata.wmh //[colordata, max, min, iqr, iqrmax, iqrmin]
+    cmb_data = bullseyedata.cmb
+    epvs_data = bullseyedata.epvs
 
     wmh_combined_min = Math.min(wmh_data[2], wmh_data[5])
     wmh_combined_max = Math.max(wmh_data[1], wmh_data[4])
@@ -245,58 +301,19 @@ function showCohortBullseye(bullseyedata) {
         .style.height = "auto";
 }
 
-function showSingleBullseye(bullseyedata) {
-    resetBullseyeSelection()
-    document.getElementById("single_bullseye_view").style.display = "block"
-    document.getElementById("cohort_bullseye_view").style.display = "none"
-    document.getElementById("sub_bullseye_view").style.display = "none"
-    wmh_data = bullseyedata[0] //[colordata, max, min, iqr, iqrmax, iqrmin]
-    cmb_data = bullseyedata[1]
-    epvs_data = bullseyedata[2]
-
-    create_bullseye("#bullseye_wmh", wmh_data[0], wmh_data[2], wmh_data[1], color_bullseye_wmh)
-    create_bullseye("#bullseye_cmb", cmb_data[0], cmb_data[2], cmb_data[1], color_bullseye_cmb)
-    create_bullseye("#bullseye_epvs", epvs_data[0], epvs_data[2], epvs_data[1], color_bullseye_epvs)
-
-    legend({
-        target: "#bullseye_wmh_colorbar",
-        color: d3.scaleSequential([wmh_data[2], wmh_data[1]],color_bullseye_wmh),
-        title: "WMH Lesion Load",
-        scaleGraphic: true,
-        textColor: "black"
-    })
-        .style.height = "auto";
-    legend({
-        target: "#bullseye_cmb_colorbar",
-        color: d3.scaleSequential([cmb_data[2], cmb_data[1]], color_bullseye_cmb),
-        title: "CMB Lesion Load",
-        scaleGraphic: true,
-        textColor: "black"
-    })
-        .style.height = "auto";
-    legend({
-        target: "#bullseye_epvs_colorbar",
-        color: d3.scaleSequential([epvs_data[2], epvs_data[1]], color_bullseye_epvs),
-        title: "ePVS Lesion Load",
-        scaleGraphic: true,
-        textColor: "black"
-    })
-        .style.height = "auto";
-}
-
 function showSubBullseye(bullseyedata) {
     resetBullseyeSelection()
     document.getElementById("single_bullseye_view").style.display = "none"
     document.getElementById("cohort_bullseye_view").style.display = "none"
     document.getElementById("sub_bullseye_view").style.display = "block"
 
-    wmh_data1 = bullseyedata[0] //[colordata, max, min, iqr, iqrmax, iqrmin]
-    cmb_data1 = bullseyedata[3]
-    epvs_data1 = bullseyedata[6]
+    wmh_data1 = bullseyedata.wmh[0] //[colordata, max, min, iqr, iqrmax, iqrmin]
+    cmb_data1 = bullseyedata.cmb[0]
+    epvs_data1 = bullseyedata.epvs[0]
 
-    wmh_data2 = bullseyedata[1] //[colordata, max, min, iqr, iqrmax, iqrmin]
-    cmb_data2 = bullseyedata[4]
-    epvs_data2 = bullseyedata[7]
+    wmh_data2 = bullseyedata.wmh[1] //[colordata, max, min, iqr, iqrmax, iqrmin]
+    cmb_data2 = bullseyedata.cmb[1]
+    epvs_data2 = bullseyedata.epvs[1]
 
     wmh_combined_min = Math.min(wmh_data1[2], wmh_data2[2], wmh_data1[5], wmh_data2[5])
     wmh_combined_max = Math.max(wmh_data1[1], wmh_data2[1], wmh_data1[4], wmh_data2[4])
@@ -345,9 +362,9 @@ function showSubBullseye(bullseyedata) {
         .style.height = "auto";
 
 
-    wmh_data = bullseyedata[2] //[colordata, max, min]
-    cmb_data = bullseyedata[5]
-    epvs_data = bullseyedata[8]
+    wmh_data = bullseyedata.wmh[2] //[colordata, max, min]
+    cmb_data = bullseyedata.cmb[2]
+    epvs_data = bullseyedata.epvs[2]
 
     let wmh_max_abs = Math.max(Math.abs(wmh_data[2]), Math.abs(wmh_data[1]))
     let cmb_max_abs = Math.max(Math.abs(cmb_data[2]), Math.abs(cmb_data[1]))
@@ -508,5 +525,27 @@ function adjustTable() {
             x.children[0].style.display = !isVisibleCohorts ? "none" : null
             x.children[1].style.display = !isVisibleDifference ? "none" : null
         }
+    })
+}
+
+function debug2DParcels() {
+    $.ajax({
+        url: "http://127.0.0.1:5000/show_2Dparcellation/",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({"selected_parcels":["54","111","112","113","114"]})
+    }).done(function (labelmap_filename) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function(){
+            if (this.readyState == 4 && this.status == 200){
+                //this.response is what you're looking for
+                b = new Blob([this.response])
+                f = new File([b], 'combined_parcellation.nii.gz')
+                read([f])
+            }
+        }
+        xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/0/combined_parcellation", true);
+        xhr.responseType = 'blob';
+        xhr.send();
     })
 }

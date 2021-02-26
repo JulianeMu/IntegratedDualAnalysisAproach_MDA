@@ -82,6 +82,8 @@ dataTypeSeries = merged_all.dtypes
 # if remove_randomized_values:
 #     remove_randomized_values()
 
+latest_labelmap  = 'resources\\output\\tmp'
+parcellation_colortable_value = 8
 
 def is_number(s):
     try:
@@ -400,6 +402,10 @@ def create_meshes_of_patient(patientname):
 
     filenames = []
 
+    if not os.path.exists(os.path.join(inputDir, 'FLAIR.nii.gz')):
+        print("patient", patientname, "image data does not exist")
+        return jsonify([])
+
     # load NIFTI volume data
     logging.debug("Process Volume Data")
     flairImage = sitk.ReadImage(os.path.join(inputDir, 'FLAIR.nii.gz'))
@@ -484,12 +490,16 @@ def get_volume_of_patient(patientname):
 
 @app.route('/get_labelmap_of_patient/<string:patientname>/<string:lesiontype>', methods=["POST"])
 def get_labelmap_of_patient(patientname, lesiontype):
+    global latest_labelmap
     logging.debug("get labelmap file", patientname, lesiontype)
     if patientname == "tmp":
-        return send_from_directory(os.path.join('resources\\output', patientname),f'{lesiontype}.nii.gz')
-    if lesiontype == "combined":
-        return send_from_directory(os.path.join('resources\\output', patientname),f'{lesiontype}.nii.gz')
-    return send_from_directory(os.path.join('resources\\input', patientname),f'{lesiontype}.nii.gz')
+        latest_labelmap  = 'resources\\output\\' + patientname
+        return send_from_directory(os.path.join('resources\\output', patientname), f'{lesiontype}.nii.gz')
+    if lesiontype.startswith("combined"):
+        latest_labelmap = 'resources\\output\\' + patientname
+        return send_from_directory(os.path.join('resources\\output', patientname), f'{lesiontype}.nii.gz')
+    latest_labelmap = 'resources\\input\\' + patientname
+    return send_from_directory(os.path.join('resources\\input', patientname), f'{lesiontype}.nii.gz')
 
 def preprocess_bullseyes():
     patients = [name for name in os.listdir("resources\\input") if os.path.isdir(os.path.join("resources\\input", name))]
@@ -520,6 +530,9 @@ def add_patient_labelmaps():
     wmhImages = []
     cmbImages = []
     epvsImages = []
+    missing_wmh = set()
+    missing_cmb = set()
+    missing_epvs = set()
 
     originalImage = None
 
@@ -535,14 +548,20 @@ def add_patient_labelmaps():
             patientImageWMH = sitk.ReadImage(os.path.join('resources\\input', patient, 'wmh.nii.gz'))
             wmhImages.append(sitk.GetArrayFromImage(patientImageWMH))
             originalImage = patientImageWMH
+        else:
+            missing_wmh.add(patient)
         if os.path.exists(os.path.join('resources\\input', patient, 'cmb.nii.gz')):
             patientImageCMB = sitk.ReadImage(os.path.join('resources\\input', patient, 'cmb.nii.gz'))
             cmbImages.append(sitk.GetArrayFromImage(patientImageCMB))
             originalImage = patientImageCMB
+        else:
+            missing_cmb.add(patient)
         if os.path.exists(os.path.join('resources\\input', patient, 'epvs.nii.gz')):
             patientImageEPVS = sitk.ReadImage(os.path.join('resources\\input', patient, 'epvs.nii.gz'))
             epvsImages.append(sitk.GetArrayFromImage(patientImageEPVS))
             originalImage = patientImageEPVS
+        else:
+            missing_epvs.add(patient)
 
     imageShape = sitk.GetArrayFromImage(originalImage).shape
     allMeshes = []
@@ -562,15 +581,20 @@ def add_patient_labelmaps():
     else:
         epvs_mat = np.zeros(imageShape)
 
-    combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,originalImage,os.path.join('resources\\output','tmp'))
-    allMeshes.append(colortable)
-    return jsonify(allMeshes)
+    if originalImage is not None:
+        combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,originalImage,os.path.join('resources\\output','tmp'))
+        allMeshes.append(colortable)
+
+    return jsonify({"meshfilenames": allMeshes, "missing_wmh": list(missing_wmh), "missing_cmb": list(missing_cmb), "missing_epvs": list(missing_epvs)})
 
 @app.route('/sub_patient_labelmaps/', methods=["POST"])
 def subPatientLabelmaps():
     wmhImages = []
     cmbImages = []
     epvsImages = []
+    missing_wmh = set()
+    missing_cmb = set()
+    missing_epvs = set()
 
     originalImage = None
 
@@ -588,14 +612,20 @@ def subPatientLabelmaps():
                 patientImageWMH = sitk.ReadImage(os.path.join('resources\\input', patient, 'wmh.nii.gz'))
                 wmhImages.append(sitk.GetArrayFromImage(patientImageWMH)*factor)
                 originalImage = patientImageWMH
+            else:
+                missing_wmh.add(patient)
             if os.path.exists(os.path.join('resources\\input', patient, 'cmb.nii.gz')):
                 patientImageCMB = sitk.ReadImage(os.path.join('resources\\input', patient, 'cmb.nii.gz'))
                 cmbImages.append(sitk.GetArrayFromImage(patientImageCMB)*factor)
                 originalImage = patientImageCMB
+            else:
+                missing_cmb.add(patient)
             if os.path.exists(os.path.join('resources\\input', patient, 'epvs.nii.gz')):
                 patientImageEPVS = sitk.ReadImage(os.path.join('resources\\input', patient, 'epvs.nii.gz'))
                 epvsImages.append(sitk.GetArrayFromImage(patientImageEPVS)*factor)
                 originalImage = patientImageEPVS
+            else:
+                missing_epvs.add(patient)
 
     imageShape = sitk.GetArrayFromImage(originalImage).shape
     allMeshes = []
@@ -615,26 +645,32 @@ def subPatientLabelmaps():
     else:
         epvs_mat = np.zeros(imageShape)
 
-    combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,originalImage,os.path.join('resources\\output','tmp'), colormapType="diverging")
-    allMeshes.append(colortable)
-    return jsonify(allMeshes)
+    if originalImage is not None:
+        combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,originalImage,os.path.join('resources\\output','tmp'), colormapType="diverging")
+        allMeshes.append(colortable)
+
+    return jsonify({"meshfilenames": allMeshes, "missing_wmh": list(missing_wmh), "missing_cmb": list(missing_cmb), "missing_epvs": list(missing_epvs)})
 
 @app.route('/get_bullseye/<string:patientname>', methods=["POST"])
 def getBullseye(patientname):
-    bullseye_data = []
+    bullseye_data = dict()
     for filetype in ["wmh", "cmb", "epvs"]:
         if os.path.exists(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt")):
             with open(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt"),"rb") as f:
                 bullseye_data_filetype = pickle.load(f)
-                bullseye_data.append(bullseye_data_filetype)
+                bullseye_data[filetype] = bullseye_data_filetype
         else:
-            bullseye_data.append([])
+            bullseye_data[filetype] = []
     return jsonify(bullseye_data)
 
 @app.route('/add_bullseye/', methods=["POST"])
 def addBullseye():
-    results = []
+    results = dict()
     patients = request.get_json()["message"]
+    missing_wmh = set()
+    missing_cmb = set()
+    missing_epvs = set()
+
     for filetype in ["wmh", "cmb", "epvs"]:
         bullseye_data = []
         for patientname in patients:
@@ -643,18 +679,29 @@ def addBullseye():
                 with open(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt"),"rb") as f:
                     bullseye_data_filetype = pickle.load(f)
                     bullseye_data.append(bullseye_data_filetype)
+            else:
+                if filetype == "wmh":
+                    missing_wmh.add(patientname)
+                if filetype == "cmb":
+                    missing_cmb.add(patientname)
+                if filetype == "epvs":
+                    missing_epvs.add(patientname)
+
         if len(bullseye_data) > 0:
-            results.append(addBullseyeData(bullseye_data))
+            results[filetype] = addBullseyeData(bullseye_data)
         else:
-            results.append([])
+            results[filetype] = []
     print(results)
-    return jsonify(results)
+    return jsonify({"bullseyedata": results, "missing_wmh": list(missing_wmh), "missing_cmb": list(missing_cmb), "missing_epvs": list(missing_epvs)})
 
 @app.route('/sub_bullseye/', methods=["POST"])
 def subBullseye():
-    results = []
+    results = dict()
     patients1 = request.get_json()["IDs1"]
     patients2 = request.get_json()["IDs2"]
+    missing_wmh = set()
+    missing_cmb = set()
+    missing_epvs = set()
 
     for filetype in ["wmh", "cmb", "epvs"]:
         bullseye_data_patients1 = []
@@ -664,6 +711,13 @@ def subBullseye():
                 with open(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt"),"rb") as f:
                     bullseye_data_filetype = pickle.load(f)
                     bullseye_data_patients1.append(bullseye_data_filetype)
+            else:
+                if filetype == "wmh":
+                    missing_wmh.add(patientname)
+                if filetype == "cmb":
+                    missing_cmb.add(patientname)
+                if filetype == "epvs":
+                    missing_epvs.add(patientname)
         bullseye_data_patients2 = []
         for patientname in patients2:
             patientname = str(patientname)
@@ -671,6 +725,13 @@ def subBullseye():
                 with open(os.path.join("resources\\output", patientname, "bullseyedata_"+filetype+".txt"),"rb") as f:
                     bullseye_data_filetype = pickle.load(f)
                     bullseye_data_patients2.append(bullseye_data_filetype)
+            else:
+                if filetype == "wmh":
+                    missing_wmh.add(patientname)
+                if filetype == "cmb":
+                    missing_cmb.add(patientname)
+                if filetype == "epvs":
+                    missing_epvs.add(patientname)
         if len(bullseye_data_patients1) >= 1:
             add_patients1 = addBullseyeData(bullseye_data_patients1)
         else:
@@ -679,12 +740,29 @@ def subBullseye():
             add_patients2 = addBullseyeData(bullseye_data_patients2)
         else:
             add_patients2 = defaultBullseyeData()
-        results.append(add_patients1)
-        results.append(add_patients2)
-        results.append(subBullseyeData(add_patients2[0], add_patients1[0]))
+
+        filetype_results = []
+        filetype_results.append(add_patients1)
+        filetype_results.append(add_patients2)
+        filetype_results.append(subBullseyeData(add_patients2[0], add_patients1[0]))
+        results[filetype] = filetype_results
 
     print(results)
-    return jsonify(results)
+    return jsonify({"bullseyedata": results, "missing_wmh": list(missing_wmh), "missing_cmb": list(missing_cmb), "missing_epvs": list(missing_epvs)})
+
+@app.route('/show_2Dparcellation/', methods=["POST"])
+def show2Dparcellation():
+    global latest_labelmap
+    selected_parcels = request.get_json()["selected_parcels"]
+    image_masks = []
+    for parcel in selected_parcels:
+        if os.path.exists("resources\\input\\default\\layer_mask_" + parcel + ".npz"):
+            image_masks.append(np.load("resources\\input\\default\\layer_mask_" + parcel + ".npz")["image"])
+    if len(image_masks) > 0:
+        combined_labelmap = sitk.ReadImage(os.path.join(latest_labelmap, "combined.nii.gz"))
+        combined_array = sitk.GetArrayFromImage(combined_labelmap)
+        return jsonify([createParcellationSlices(combined_array, image_masks, combined_labelmap, latest_labelmap)])
+    return jsonify([os.path.join(latest_labelmap, "combined.nii.gz")])
 
 if __name__ == '__main__':
     preprocess_bullseyes()

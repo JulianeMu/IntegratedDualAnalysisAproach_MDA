@@ -35,7 +35,7 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
                 ? Math.sqrt((k + 1) * Math.pow(rnm1, 2) - k * Math.pow(rnm2, 2))
                 : r0;
 
-        console.log(n, rn, rnm1, rnm2, sigma0);
+        //console.log(n, rn, rnm1, rnm2, sigma0);
         let arcs = Array(sigma0)
             .fill(1)
             .map((v, i) => {
@@ -74,6 +74,8 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
                 element.__data__[3] = 0
             })
             bullseyecell_to_parcellationmesh[d[1]][d[2]].visible = false
+            selected_parcellations[d[1]][d[2]] = false
+            mesh.visible = !checkIfSelected() && mesh.opacity !== 0
         } else {
             d[3] = 1;
             elements.forEach((element) => {
@@ -82,12 +84,14 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
                 element.__data__[3] = 1
             })
             bullseyecell_to_parcellationmesh[d[1]][d[2]].visible = true
+            selected_parcellations[d[1]][d[2]] = true
+            mesh.visible = false
         }
     });
 
     tippy_instances_bullseye = tippy(svg.selectAll("path").nodes(),{followCursor:true});
     tippy_instances_bullseye.forEach((x,i) => {
-        x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]]);
+        x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]].toFixed(2));
     })
 
     // labels
@@ -100,7 +104,7 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
                     ? Math.sqrt((k + 1) * Math.pow(rnm1, 2) - k * Math.pow(rnm2, 2))
                     : r0;
 
-            console.log(n, rn, rnm1, rnm2, sigma0);
+            //console.log(n, rn, rnm1, rnm2, sigma0);
             let arcs = Array(sigma0)
                 .fill(1)
                 .map((v, i) => {
@@ -119,7 +123,7 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
                 1: "Par",
                 2: "Temp",
                 3: "Occ",
-                4: "Bgit",
+                4: "BGIT",
                 5: "Occ",
                 6: "Temp",
                 7: "Par",
@@ -176,4 +180,14 @@ function initialize_bullseyeplot() {
     }).done(function (response) {
         showSingleBullseye(response)
     })
+}
+
+function checkIfSelected() {
+    for (let shell = 1; shell<= 4; shell++){
+        for (let lobe = 0; lobe <= 8; lobe++){
+            if (selected_parcellations[shell][lobe] === true)
+                    return true
+        }
+    }
+    return false
 }

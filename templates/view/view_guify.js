@@ -22,14 +22,14 @@ function setupGUIfy() {
 
         a = gui.Register([
             {
-                type: 'folder', label: 'Direct Vis',
+                type: 'folder', label: 'Slices & Volume',
                 open: true
             },
             {
-                type: 'folder', label: 'Indirect Vis',
+                type: 'folder', label: 'Surface Models',
                 open: true
             },
-            {
+            /*{
                 type: 'checkbox', label: 'Toggle WMH',
                 initial: true,
                 onChange: toggleWMH,
@@ -46,32 +46,31 @@ function setupGUIfy() {
                 initial: true,
                 onChange: toggleEPVS,
                 folder: 'Indirect Vis'
-            },
+            },*/
             {
                 type: 'select', label: 'View',
                 options: ['Slices', 'DVR'],
                 onChange: switchView,
-                folder: 'Direct Vis'
             },
             {
                 type: 'checkbox', label: 'Toggle Lesions',
                 initial: true,
                 onChange: switchLabelmapVisibility,
-                folder: 'Direct Vis'
+                folder: 'Slices & Volume'
             },
             {
                 type: 'range', label: 'Opacity',
                 min: 0, max: 100, step: 1, scale: 'linear',
                 initial: 100,
                 onChange: opacity3dVolume,
-                folder: 'Direct Vis'
+                folder: 'Slices & Volume'
             },
             {
-                type: 'interval', label: 'DVR_threshold',
+                type: 'interval', label: 'DVR Threshold',
                 min: volume.min, max: volume.max,
                 initial: [200, volume.max],
                 onChange: thresholdVolume,
-                folder: 'Direct Vis'
+                folder: 'Slices & Volume'
             },
             /*{
                 type: 'interval', label: 'DVR_windowLevel',
@@ -84,7 +83,31 @@ function setupGUIfy() {
                 min: 0, max: 100, step: 1, scale: 'linear',
                 initial: 100,
                 onChange: opacityMesh,
-                folder: 'Indirect Vis'
+                folder: 'Surface Models'
+            },
+            {
+                type: 'interval', label: 'WMH Load Threshold',
+                min: 0, max: column_values_initially[0].column_values.length,
+                step: 1, scale: 'linear',
+                initial: [0, column_values_initially[0].column_values.length],
+                onChange: thresholdWMHLoad,
+                folder: 'Surface Models'
+            },
+            {
+                type: 'interval', label: 'CMB Load Threshold',
+                min: 0, max: column_values_initially[0].column_values.length,
+                step: 1, scale: 'linear',
+                initial: [0, column_values_initially[0].column_values.length],
+                onChange: thresholdCMBLoad,
+                folder: 'Surface Models'
+            },
+            {
+                type: 'interval', label: 'ePVS Load Threshold',
+                min: 0, max: column_values_initially[0].column_values.length,
+                step: 1, scale: 'linear',
+                initial: [0, column_values_initially[0].column_values.length],
+                onChange: thresholdePVSLoad,
+                folder: 'Surface Models'
             }
         ]);
         gui.loadedComponents.forEach((x) => {
@@ -255,7 +278,6 @@ function opacity3dVolume(value) {
     }
 
     currentVolume.opacity = value/100;
-    console.log(currentVolume.opacity);
 
     if (RT.linked) {
 
@@ -343,6 +365,11 @@ function opacityMesh(value) {
     if (!mesh) {
         return;
     }
+    if (value === 0)
+        mesh.visible = false
+    else if (!checkIfSelected()) {
+        mesh.visible = true
+    }
 
     mesh.opacity = value / 100;
 
@@ -420,6 +447,43 @@ function toggleMeshlabelmapVisibility(value,type) {
 
     }
 
+}
+
+function thresholdWMHLoad(values){
+    if(!_data)
+        return
+    _data.meshlabelmap.wmh_threshold = values
+    thresholdMeshLabelmaps(values, "wmh")
+}
+
+function thresholdCMBLoad(values){
+    if(!_data)
+        return
+    _data.meshlabelmap.cmb_threshold = values
+    thresholdMeshLabelmaps(values, "cmb")
+}
+
+function thresholdePVSLoad(values){
+    if(!_data)
+        return
+    _data.meshlabelmap.epvs_threshold = values
+    thresholdMeshLabelmaps(values, "epvs")
+}
+
+function thresholdMeshLabelmaps(values, lesiontype){
+    if(!_data)
+        return
+    for(let i = 0; i < _data.meshlabelmap.meshes.length; i++){
+        let filename = _data.meshlabelmap.file[i].name
+        if(filename.includes(lesiontype)){
+            if(filename.startsWith("multiple")){
+                _data.meshlabelmap.meshes[i].visible = values[1] >= 1 && values[0] <= 1
+            } else {
+                let lesionload = Number(filename.split("_")[2].split(".")[0])
+                _data.meshlabelmap.meshes[i].visible = values[1] >= lesionload && values[0] <= lesionload
+            }
+        }
+    }
 }
 
 

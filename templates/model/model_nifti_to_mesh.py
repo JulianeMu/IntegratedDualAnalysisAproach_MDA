@@ -8,6 +8,7 @@ import math
 import trimesh
 import pandas as pd
 import os
+from scipy.ndimage import sobel, generic_gradient_magnitude
 
 # create brain mesh as OBJ
 def create_obj_brain(image, outputpath, threshold):
@@ -17,9 +18,10 @@ def create_obj_brain(image, outputpath, threshold):
     :param threshold: iso value of marching cubes algorithm
     :return: list of all created files
     """
-    p = image.transpose(2, 1, 0)
+    p = image.transpose(2,0,1)
     verts, faces, normals, values = measure.marching_cubes(p, threshold)
-    spacing = np.array([1.2000000477, 0.9765999913, 3.0000000000])
+    #spacing = np.array([1.2000000477, 0.9765999913, 3.0000000000])
+    spacing = np.array([1, 1, 1])
     verts = verts*spacing
     verts[:, 1] = p.shape[1] * spacing[1] - verts[:, 1]
 
@@ -64,16 +66,18 @@ def create_obj_brain(image, outputpath, threshold):
 
 
 # create wmh mesh as OBJ
-def create_obj_lesions(image, outputpath, lesiontype, threshold = 0.999):
+def create_obj_lesions(image, outputpath, lesiontype, threshold = 0.999, threshold_digit = 0.5):
     """
     :param image: NIFTI WMH Data as ndarray
     :param outputpath: path name
     :param threshold: iso value of marching cubes algorithm
     :return: list of all created files
     """
-    p = image.transpose(2, 1, 0)
+    image[image < threshold_digit] = 0
+    image[image >= threshold_digit] = 1
+    p = image.transpose(2,0,1)
     verts, faces, normals, values = measure.marching_cubes(p, threshold)
-    spacing = np.array([1.2000000477, 0.9765999913, 3.0000000000])
+    spacing = np.array([1,1,1]) #([1.2000000477, 0.9765999913, 3.0000000000])
     verts = verts*spacing
     verts[:, 1] = p.shape[1] * spacing[1] - verts[:, 1]
     filenames = write_multiple_obj_files(verts, faces, normals, outputpath + "\\multiple_" + lesiontype)
@@ -199,7 +203,9 @@ def add_wmh(images, originalImage, outputpath, filetype):
     finalImage = np.zeros(images[0].shape)
 
     for image in images:
-        image[image == 2] = 0
+        # make sure no weird numbers appear
+        image[image > 0] = 1
+        image[image < 0] = 0
         finalImage += image
 
     mesh_files = create_layered_meshes(finalImage,outputpath, filetype)
@@ -213,37 +219,21 @@ def add_wmh(images, originalImage, outputpath, filetype):
     #mesh_files.append(create_colormap(int(np.max(images)), outputpath))
     return filetype+".nii.gz", finalImage, mesh_files
 
-def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath, colormapType = None):
+def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath, colormapType = None, threshold = 0.5):
     cmbOffset = np.max(np.abs(wmhImage))
     epvsOffset = np.max(np.abs(cmbImage))+cmbOffset
     combinationOffset = np.max(np.abs(epvsImage))+epvsOffset
     finalImage = np.zeros(wmhImage.shape)
-    wmh_mask = wmhImage != 0
-    cmb_mask = cmbImage != 0
-    epvs_mask = epvsImage != 0
-    finalImage[wmh_mask] = wmhImage[wmh_mask]
-    finalImage[cmb_mask] = cmbImage[cmb_mask]+cmbOffset*np.sign(cmbImage[cmb_mask])
-    finalImage[epvs_mask] = epvsImage[epvs_mask]+epvsOffset*np.sign(epvsImage[epvs_mask])
+    wmh_mask = np.abs(wmhImage) > threshold
+    cmb_mask = np.abs(cmbImage) > threshold
+    epvs_mask = np.abs(epvsImage) > threshold
+    finalImage[wmh_mask] = np.round(wmhImage[wmh_mask])
+    finalImage[cmb_mask] = np.round(cmbImage[cmb_mask]+cmbOffset*np.sign(cmbImage[cmb_mask]))
+    finalImage[epvs_mask] = np.round(epvsImage[epvs_mask]+epvsOffset*np.sign(epvsImage[epvs_mask]))
     finalImage[wmh_mask*cmb_mask] = combinationOffset+1
     finalImage[wmh_mask*epvs_mask] = combinationOffset+2
     finalImage[cmb_mask*epvs_mask] = combinationOffset+3
     finalImage[wmh_mask*cmb_mask*epvs_mask] = combinationOffset+4
-
-    """for x,y,z in itertools.product(range(finalImage.shape[0]),range(finalImage.shape[1]),range(finalImage.shape[2])):
-        if wmhImage[x,y,z] != 0 and cmbImage[x,y,z] == 0 and epvsImage[x,y,z] == 0:
-            finalImage[x,y,z] = wmhImage[x,y,z]
-        elif wmhImage[x,y,z] == 0 and cmbImage[x,y,z] != 0 and epvsImage[x,y,z] == 0:
-            finalImage[x,y,z] = cmbOffset*np.sign(cmbImage[x,y,z])+cmbImage[x,y,z]
-        elif wmhImage[x,y,z] == 0 and cmbImage[x,y,z] == 0 and epvsImage[x,y,z] != 0:
-            finalImage[x,y,z] = epvsOffset*np.sign(epvsImage[x,y,z])+epvsImage[x,y,z]
-        elif wmhImage[x,y,z] != 0 and cmbImage[x,y,z] != 0 and epvsImage[x,y,z] == 0:
-            finalImage[x,y,z] = combinationOffset+1
-        elif wmhImage[x,y,z] != 0 and cmbImage[x,y,z] == 0 and epvsImage[x,y,z] != 0:
-            finalImage[x,y,z] = combinationOffset+2
-        elif wmhImage[x,y,z] == 0 and cmbImage[x,y,z] != 0 and epvsImage[x,y,z] != 0:
-            finalImage[x,y,z] = combinationOffset+3
-        elif wmhImage[x,y,z] != 0 and cmbImage[x,y,z] != 0 and epvsImage[x,y,z] != 0:
-            finalImage[x,y,z] = combinationOffset+4"""
 
     finalImageFile = sitk.GetImageFromArray(finalImage)
     finalImageFile.CopyInformation(originalImage)
@@ -269,17 +259,21 @@ def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath, 
 
     return "combined.nii.gz", finalImage, combinedColormap
 
-def create_layered_meshes(image, outputpath, filetype, basename = "add_"):
+def create_layered_meshes(image, outputpath, filetype, basename = "add_", exportLayerMask = False):
     filenames = []
-    image = image.transpose(2, 1, 0)
+    image = image.transpose(2,0,1)
     layers = np.unique(image)
     for layer in layers:
         if int(layer) == 0:
             continue
         layer_image = image == layer
         layer_image = layer_image*1
+
+        if exportLayerMask:
+            #sobel_image = generic_gradient_magnitude(layer_image, sobel) > 0
+            np.savez_compressed(outputpath + "\\layer_mask_" + str(layer), image = layer_image)
         verts, faces, normals, values = measure.marching_cubes(layer_image, 0.99)
-        spacing = np.array([1.2000000477, 0.9765999913, 3.0000000000])
+        spacing = np.array([1,1,1]) #([1.2000000477, 0.9765999913, 3.0000000000])
         verts = verts*spacing
         verts[:, 1] = layer_image.shape[1] * spacing[1] - verts[:, 1]
         #filenames.extend(write_multiple_obj_files(verts, faces, normals, outputpath + "\\"+basename+"_wmh_" + str(int(layer))))
@@ -399,10 +393,13 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
         writeBinnedColormap(combinedOffset-epvsOffset, 'PuOr', "epvs", f, epvsOffset, True)
         writeBinnedColormap(combinedOffset-epvsOffset, 'PuOr', "epvs", f, epvsOffset, False)
 
-        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 1\n")
-        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 1\n")
-        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 1\n")
-        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 1")
+        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 255\n")
+        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 255\n")
+        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 255\n")
+        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 255\n")
+        f.write(str(int(combinedOffset+5))+" combined_parcellation 128 255 102 255\n")
+        global parcellation_colortable_value
+        parcellation_colortable_value = int(combinedOffset+5)
 
     return "combinedcolortable.txt"
 
@@ -455,10 +452,13 @@ def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, out
         writeBinnedColormap(epvsOffset-cmbOffset, 'Purples', "cmb", f, cmbOffset)
         writeBinnedColormap(combinedOffset-epvsOffset, 'Greens', "epvs", f, epvsOffset)
 
-        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 1\n")
-        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 1\n")
-        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 1\n")
-        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 1")
+        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 255\n")
+        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 255\n")
+        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 255\n")
+        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 255\n")
+        f.write(str(int(combinedOffset+5))+" combined_parcellation 128 255 102 255\n")
+        global parcellation_colortable_value
+        parcellation_colortable_value = int(combinedOffset+5)
 
     return "combinedcolortable.txt"
 
@@ -478,14 +478,18 @@ def create_combined_binary_colormap(outputpath):
     with open(outputpath+"/combinedcolortable.txt", "w") as f:
         f.write("# combined binary" + "\n")
         f.write("0 background 0 0 0 0\n")
-        f.write(str(1) + " WMH " + " ".join([str(math.floor(x*255)) for x in samplingColors_wmh[1]]) + "\n")
+        #f.write(str(1) + " WMH " + " ".join([str(math.floor(x*255)) for x in samplingColors_wmh[1]]) + "\n")
+        f.write(str(1) + " WMH 0 0 255 255\n")
         f.write(str(2) + " CMB " + " ".join([str(math.floor(x*255)) for x in samplingColors_cmb[1]]) + "\n")
         f.write(str(3) + " ePVS " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[1]]) + "\n")
 
-        f.write("4 combined_WMH_CMB 255 128 128 1\n")
-        f.write("5 combined_WMH_ePVS 201 255 229 1\n")
-        f.write("6 combined_CMB_ePVS 0 255 8 1\n")
-        f.write("7 combined_WMH_CMB_ePVS 255 237 163 1")
+        f.write("4 combined_WMH_CMB 255 128 128 255\n")
+        f.write("5 combined_WMH_ePVS 201 255 229 255\n")
+        f.write("6 combined_CMB_ePVS 0 255 8 255\n")
+        f.write("7 combined_WMH_CMB_ePVS 255 237 163 255\n")
+        f.write("8 combined_parcellation 128 255 102 255\n")
+        global parcellation_colortable_value
+        parcellation_colortable_value = 8
 
     return "combinedcolortable.txt"
 
@@ -511,5 +515,18 @@ def create_divergingcolormap(minvalue, maxvalue, outputpath):
 
 
 def createParcellationMeshes(arr, outputfolder = "resources\\input\\default"):
-    mesh_files = create_layered_meshes(arr, outputfolder, "parcellation", "")
+    mesh_files = create_layered_meshes(arr, outputfolder, "parcellation", "", True)
     return mesh_files
+
+def createParcellationSlices(combined_array, image_masks, original_image, outputpath):
+    #combined_array[np.logical_and(combined_array, image_masks[0])] = np.max(combined_array)+1
+    for image_mask in image_masks:
+        combined_array[np.logical_and(image_mask, combined_array == 0)] = parcellation_colortable_value
+
+    finalImageFile = sitk.GetImageFromArray(combined_array)
+    finalImageFile.CopyInformation(original_image)
+    writer = sitk.ImageFileWriter()
+    writer.SetFileName(os.path.join(outputpath, "combined_parcellation.nii.gz"))
+    writer.Execute(finalImageFile)
+
+    return os.path.join(outputpath, "combined_parcellation.nii.gz")
