@@ -131,6 +131,7 @@ function initialize2DView() {
 }
 
 function updateLinkedViews() {
+    deactivatePause()
     window.console.log('Loading completed.');
 
     if (previousVolume === null && currentVolume !== null){

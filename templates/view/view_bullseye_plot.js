@@ -87,6 +87,7 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
             selected_parcellations[d[1]][d[2]] = true
             mesh.visible = false
         }
+    show2DParcels()
     });
 
     tippy_instances_bullseye = tippy(svg.selectAll("path").nodes(),{followCursor:true});

@@ -60,7 +60,7 @@ def create_obj_brain(image, outputpath, threshold):
                                                  x[2] in largestComponent, 1, faces)
     remapped_faces = remap(faces[filter_faces])  # apply the remap function to each face
 
-    write_single_obj_file(filtered_vertices, remapped_faces, filtered_normals, outputpath+"\\brain.obj")
+    write_single_obj_file(filtered_vertices, remapped_faces, filtered_normals, os.path.join(outputpath,"brain.obj"))
 
     return ["brain.obj"]
 
@@ -80,7 +80,7 @@ def create_obj_lesions(image, outputpath, lesiontype, threshold = 0.999, thresho
     spacing = np.array([1,1,1]) #([1.2000000477, 0.9765999913, 3.0000000000])
     verts = verts*spacing
     verts[:, 1] = p.shape[1] * spacing[1] - verts[:, 1]
-    filenames = write_multiple_obj_files(verts, faces, normals, outputpath + "\\multiple_" + lesiontype)
+    filenames = write_multiple_obj_files(verts, faces, normals, os.path.join(outputpath,"multiple_" + lesiontype))
     return filenames
 
 
@@ -147,12 +147,12 @@ def write_multiple_obj_files(verts, faces, normals, outputfile):
         filter_faces = set().union(*[vert_to_faceset[vert] for vert in component])
         remapped_faces = remap(faces[np.array(list(filter_faces)), :])  # apply the remap function to each face
         mesh = trimesh.Trimesh(vertices = filtered_verts, faces = remapped_faces, process = False)  # calc volume and stuff
-        filename = outputfile.split("\\")[-1]+f'_{i}.obj'
+        filename = outputfile.split(os.sep)[-1]+f'_{i}.obj'
         df = df.append({'Filename': filename, 'Volume': mesh.volume}, ignore_index=True)
         write_single_obj_file(filtered_verts,remapped_faces,filtered_normals,outputfile+f'_{i}.obj')
         filenames.append(filename)
     df.to_csv(outputfile+'_lesiondata.csv')
-    filenames.append(outputfile.split("\\")[-1]+'_lesiondata.csv')
+    filenames.append(outputfile.split(os.sep)[-1]+'_lesiondata.csv')
     return filenames
 
 
@@ -189,7 +189,7 @@ def write_multiple_obj_single_file(verts, faces, normals, outputfile):
             for item in filtered_faces:
                 thefile.write("f {0}//{0} {1}//{1} {2}//{2}\n".format(item[0], item[1], item[2]))
 
-    return [outputfile.split("\\")[-1]]
+    return [outputfile.split(os.sep)[-1]]
 
 
 # add lesionmaps
@@ -271,14 +271,14 @@ def create_layered_meshes(image, outputpath, filetype, basename = "add_", export
 
         if exportLayerMask:
             #sobel_image = generic_gradient_magnitude(layer_image, sobel) > 0
-            np.savez_compressed(outputpath + "\\layer_mask_" + str(layer), image = layer_image)
+            np.savez_compressed(os.path.join(outputpath, "layer_mask_" + str(layer)), image=layer_image)
         verts, faces, normals, values = measure.marching_cubes(layer_image, 0.99)
         spacing = np.array([1,1,1]) #([1.2000000477, 0.9765999913, 3.0000000000])
         verts = verts*spacing
         verts[:, 1] = layer_image.shape[1] * spacing[1] - verts[:, 1]
         #filenames.extend(write_multiple_obj_files(verts, faces, normals, outputpath + "\\"+basename+"_wmh_" + str(int(layer))))
         #filenames.extend(write_multiple_obj_single_file(verts, faces, normals, outputpath + "\\"+basename+"_wmh_" + str(int(layer))))
-        write_single_obj_file(verts, faces, normals, outputpath + "\\" + basename + str(filetype) + "_" + str(int(layer))+".obj")
+        write_single_obj_file(verts, faces, normals, os.path.join(outputpath, basename + str(filetype) + "_" + str(int(layer))+".obj"))
         filenames.extend([basename + str(filetype) + "_" + str(int(layer))+".obj"])
 
     return filenames
@@ -514,7 +514,7 @@ def create_divergingcolormap(minvalue, maxvalue, outputpath):
     return outputpath+"/subcolortable.txt"
 
 
-def createParcellationMeshes(arr, outputfolder = "resources\\input\\default"):
+def createParcellationMeshes(arr, outputfolder = os.path.join("resources", "input", "default")):
     mesh_files = create_layered_meshes(arr, outputfolder, "parcellation", "", True)
     return mesh_files
 

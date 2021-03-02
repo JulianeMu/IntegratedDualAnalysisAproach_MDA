@@ -47,6 +47,27 @@ function getPatientIDs() {
     }
 }
 
+function showMissingImageData (missing_wmh, missing_cmb, missing_epvs) {
+    let targetDiv = document.getElementById("id_show_missing_image_data");
+    targetDiv.innerHTML = "";
+    if (missing_wmh.length > 0) {
+        let currentDiv = document.createElement("div");
+        currentDiv.innerHTML = "Missing WMH: " + missing_wmh.map(x => Number(x)).sort().join()
+        targetDiv.appendChild(currentDiv)
+    }
+    if (missing_cmb.length > 0) {
+        let currentDiv = document.createElement("div");
+        currentDiv.innerHTML = "Missing CMB: " + missing_cmb.map(x => Number(x)).sort().join()
+        targetDiv.appendChild(currentDiv)
+    }
+    if (missing_epvs.length > 0) {
+        let currentDiv = document.createElement("div");
+        currentDiv.innerHTML = "Missing ePVS: " + missing_epvs.map(x => Number(x)).sort().join()
+        targetDiv.appendChild(currentDiv)
+    }
+}
+
+
 function showComparisonWithAll() {
     for (let column in column_values_initially){
         column = column_values_initially[column]
@@ -163,6 +184,7 @@ function loadMeshes(meshfilenames, onFileLoadedCallback){
 }
 
 function showSingleSelection(){
+    activatePause()
     addPatientLabelmaps(getPatientIDs(), function(filenames){
         var total_files = filenames.length+2 //volume and combinedlabelmap
         var loaded_files = []
@@ -178,6 +200,7 @@ function showSingleSelection(){
     })
     addBullseyeplots(getPatientIDs(), function(response){
         current_bullseyedata = response.bullseyedata
+        showMissingImageData(response.missing_wmh, response.missing_cmb, response.missing_epvs)
         if (getPatientIDs().length > 1) {
             if (swapButtonPressed)
                 swapMedianIQR()
@@ -188,6 +211,7 @@ function showSingleSelection(){
 }
 
 function showSelectionComparison(comparedGroup) {
+    activatePause()
     subPatientLabelmaps(comparedGroup, getPatientIDs(), function(filenames){
         var total_files = filenames.length+2 //volume and combinedlabelmap
         var loaded_files = []
@@ -203,6 +227,7 @@ function showSelectionComparison(comparedGroup) {
     })
     subBullseyeplots(comparedGroup, getPatientIDs(), function(response){
         current_bullseyedata = response.bullseyedata
+        showMissingImageData(response.missing_wmh, response.missing_cmb, response.missing_epvs)
         resetBullseyeSelection()
         if (swapButtonPressed)
             swapMedianIQR()
@@ -528,12 +553,20 @@ function adjustTable() {
     })
 }
 
-function debug2DParcels() {
+function show2DParcels() {
+    selected_parcels = []
+    for (let shell = 1; shell <= 4; shell++) {
+        for (let lobe = 0; lobe <= 8; lobe++) {
+            if (selected_parcellations[shell][lobe]) {
+                selected_parcels.push(""+index_to_lobe[lobe]+shell)
+            }
+        }
+    }
     $.ajax({
         url: "http://127.0.0.1:5000/show_2Dparcellation/",
         type: "POST",
         contentType: "application/json",
-        data: JSON.stringify({"selected_parcels":["54","111","112","113","114"]})
+        data: JSON.stringify({"selected_parcels":selected_parcels})
     }).done(function (labelmap_filename) {
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function(){
@@ -548,4 +581,13 @@ function debug2DParcels() {
         xhr.responseType = 'blob';
         xhr.send();
     })
+}
+
+// Pause Screen
+function activatePause() {
+    document.getElementById("pause").style.display = "block"
+}
+
+function deactivatePause() {
+    document.getElementById("pause").style.display = "none"
 }

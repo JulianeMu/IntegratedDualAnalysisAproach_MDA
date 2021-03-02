@@ -124,9 +124,7 @@
                      <button type = "button" onclick = "showComparisonWithRemaining()" style="width: fit-content; min-width: 50px; margin-right: 5px; float: left">
                          Compare to Remaining
                      </button>
-                     <button type = "button" onclick = "debug2DParcels()" style="width: fit-content; min-width: 50px; margin-right: 5px; float: left">
-                         Debug 2D Parcels
-                     </button>
+                     <div id="id_show_missing_image_data" style="color: black"></div>
                  </div>
              </div>
              <div id="buttons" class="buttons_class">
@@ -379,6 +377,7 @@
          </div>
      </div>
      <div id="right_view" style="width:30%; height:100%; float:left">
+         <div id="pause" style="top: 0; display: none; position: absolute; width: 100%; height: 100%; z-index: 100000; background-color: rgba(128, 128, 128, 0.8);"> </div>
          <div id='3d' class='threeDRenderer' style="width:100%; height:66%;">
              <div id="colormap_wmh" style="position: absolute; left: 10px; bottom: 5px"></div>
              <div id="colormap_cmb" style="position: absolute; left: 10px; bottom: 70px"></div>
