@@ -208,9 +208,17 @@ function updateLinkedViews() {
     for (let i = 0; i < _data.meshlabelmap.meshes.length; i++){
         if(currentVolume !== null && _data.meshlabelmap.meshes[i].moved === false) {
             _data.meshlabelmap.meshes[i].moved = true
-            _data.meshlabelmap.meshes[i].transform.Q[12] = 128 - currentVolume.s[0]
-            _data.meshlabelmap.meshes[i].transform.Q[13] = 128 - currentVolume.s[1]
-            _data.meshlabelmap.meshes[i].transform.Q[14] = 128 - currentVolume.s[2]
+            if (_data.meshlabelmap.meshes[i].file.endsWith("spheres")){
+                _data.meshlabelmap.meshes[i].transform.Q[12] = currentVolume.s[0] + (128-_data.meshlabelmap.meshes[i].target[0])
+                _data.meshlabelmap.meshes[i].transform.Q[13] = currentVolume.s[1] + (128-_data.meshlabelmap.meshes[i].target[1])
+                _data.meshlabelmap.meshes[i].transform.Q[14] = currentVolume.s[2] + (128-_data.meshlabelmap.meshes[i].target[2])
+
+            } else {
+                _data.meshlabelmap.meshes[i].transform.Q[12] = 128 - currentVolume.s[0]
+                _data.meshlabelmap.meshes[i].transform.Q[13] = 128 - currentVolume.s[1]
+                _data.meshlabelmap.meshes[i].transform.Q[14] = 128 - currentVolume.s[2]
+            }
+
             console.log("meshlabelmap translate");
         }
     }
@@ -312,7 +320,7 @@ function createData() {
                'meshes' : [],
              'filedata': [],
              'extensions': ['STL', 'VTK', 'FSM', 'SMOOTHWM', 'INFLATED', 'SPHERE',
-                            'PIAL', 'ORIG', 'OBJ']
+                            'PIAL', 'ORIG', 'OBJ', 'SPHERES']
            },
           'meshlabelmap': {
               'file': [],
@@ -320,7 +328,7 @@ function createData() {
               'meshes' : [],
               'filedata': [],
               'extensions': ['STL', 'VTK', 'FSM', 'SMOOTHWM', 'INFLATED', 'SPHERE',
-                  'PIAL', 'ORIG', 'OBJ'],
+                  'PIAL', 'ORIG', 'OBJ', 'SPHERES'],
               'dictionary' : {},
               'type' : [],
               'wmh_threshold': [],
@@ -496,8 +504,15 @@ function loadFiles(_numberOfFiles) {
                         colortable_reader.onload = preprocess_colortable;
                         colortable_reader.readAsText(u);
                     }
-                    // start reading this file
-                    reader.readAsArrayBuffer(u);
+                    if (u.name.toLowerCase().endsWith('spheres')){
+                        var spheres_reader = new FileReader();
+                        spheres_reader.onload = (loadHandler)(v,u);
+                        spheres_reader.readAsText(u);
+                    }
+                    else {
+                        // start reading this file
+                        reader.readAsArrayBuffer(u);
+                    }
                 }
             });
         }
@@ -680,7 +695,7 @@ function parse(data) {
           if (data['mesh']["meshes"].length - 1 >= i)
             continue;
 
-              // we have a mesh
+          // we have a mesh
           createMesh(data, i);
       }
   }
@@ -692,9 +707,13 @@ function parse(data) {
                 ren3d.remove(data['meshlabelmap']['meshes'][i]);
                 continue;
             }
+            if(data['meshlabelmap']['file'][i].name.toLowerCase().endsWith("spheres")){
+                createSphere(data, i)
+            } else {
 
-            // we have a mesh
-            createMeshLabelmap(data, i);
+                // we have a mesh
+                createMeshLabelmap(data, i);
+            }
         }
         if (_data.meshlabelmap.wmh_threshold.length > 0){
             thresholdMeshLabelmaps(_data.meshlabelmap.wmh_threshold, "wmh");
@@ -843,6 +862,79 @@ function createMeshLabelmap(data, i) {
     // add the mesh
     ren3d.add(meshlabelmap);
 }
+
+function createSphere(data, i) {
+    let filedata = data["meshlabelmap"]["filedata"][i];
+    let points = filedata.split("\n").map((x) => x.split(" ").map((y) => Number(y)));
+    points.pop();
+    var numberOfPoints = points.length; // in this example 411
+
+    if (numberOfPoints > 0){
+        // grab the first coordinate triplet
+        var firstPoint = points[0];
+
+        // create a new sphere as a template for all other ones
+        // this is an expensive operation due to CSG's mesh generation
+        newSphere = new X.sphere();
+        //newSphere.center = [firstPoint[0], firstPoint[1], firstPoint[2]];
+        //newSphere.center = [128-currentVolume.s[0],128-currentVolume.s[1],128-currentVolume.s[2]];
+        newSphere.center = [0,0,0];
+        newSphere.target = [firstPoint[0], firstPoint[1], firstPoint[2]];
+        newSphere.radius = 2;
+        newSphere.modified(); // since we don't directly add the sphere, we have to
+        newSphere.moved = false;
+        newSphere.file = data['meshlabelmap']['file'][i].name;
+        newSphere.lesionload = Number(firstPoint[3]);
+        /*newSphere.transform.Q[12] = 128 - currentVolume.s[0]
+        newSphere.transform.Q[13] = 128 - currentVolume.s[1]
+        newSphere.transform.Q[14] = 128 - currentVolume.s[2]*/
+        newSphere.transform.Q = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, currentVolume.s[0], currentVolume.s[1], currentVolume.s[2], 1];
+
+        let filetype = newSphere.file.split(".")[0]
+        if (typeof combined_colortable !== "undefined") {
+            if (combined_colortable.type === "binary")
+                newSphere.color = combined_colortable[filetype]
+            else
+                newSphere.color = combined_colortable[filetype][firstPoint[3]]
+        } else
+            newSphere.color = meshlabelmap_color[data['meshlabelmap']['type'][i]];
+        newSphere.color = [0, 1, 1];
+        data.meshlabelmap.dictionary[newSphere.id] = newSphere.file;
+        data.meshlabelmap.meshes.push(newSphere);
+        // add the mesh
+        ren3d.add(newSphere);
+
+        // loop through the points and copy the created sphere to a new X.object
+        for ( var j = 1; j < numberOfPoints; j++) {
+
+            var point = points[j];
+
+            // copy the template sphere over to avoid generating new ones
+            copySphere = new X.object(newSphere);
+            copySphere.target = [point[0], point[1], point[2]];
+            copySphere.moved = false;
+            copySphere.file = data['meshlabelmap']['file'][i].name;
+            copySphere.lesionload = Number(point[3]);
+            /*copySphere.transform.Q[12] = 128 - currentVolume.s[0]
+            copySphere.transform.Q[13] = 128 - currentVolume.s[1]
+            copySphere.transform.Q[14] = 128 - currentVolume.s[2]*/
+            copySphere.transform.Q = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, currentVolume.s[0], currentVolume.s[1], currentVolume.s[2], 1]
+            if (typeof combined_colortable !== "undefined") {
+                if (combined_colortable.type === "binary")
+                    copySphere.color = combined_colortable[filetype]
+                else
+                    copySphere.color = combined_colortable[filetype][firstPoint[3]]
+            } else
+                copySphere.color = meshlabelmap_color[data['meshlabelmap']['type'][i]];
+
+            data.meshlabelmap.dictionary[copySphere.id] = copySphere.file;
+            data.meshlabelmap.meshes.push(copySphere);
+            // add the mesh
+            ren3d.add(copySphere);
+        }
+    }
+}
+
 function createLesionMetadata(data, i) {
     var lines = data.lesionmetadata.filedata[i].split("\n")
     var metadata = {}

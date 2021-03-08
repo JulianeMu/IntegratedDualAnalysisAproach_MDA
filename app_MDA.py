@@ -445,7 +445,8 @@ def create_meshes_of_patient(patientname):
             epvsImage = sitk.ReadImage(os.path.join(inputDir, 'epvs.nii.gz'))
             #filenames.append(create_colormap(2,outputDir))
             epvs_mat = sitk.GetArrayFromImage(epvsImage)
-            filenames.extend(create_obj_lesions(epvs_mat, outputDir, "epvs"))
+            #filenames.extend(create_obj_lesions(epvs_mat, outputDir, "epvs"))
+            filenames.extend(write_spheres_file(epvs_mat, outputDir, "epvs"))
         else:
             epvs_mat = np.zeros(volume_size)
 
@@ -462,7 +463,8 @@ def create_meshes_of_patient(patientname):
         combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,flairImage,outputDir)
         #
         filenames.extend(["combinedcolortable.txt"])
-        filenames.extend([x for x in os.listdir(outputDir) if x.startswith("multiple") and x.endswith(".obj")])
+        filenames.extend([x for x in os.listdir(outputDir) if x.startswith("multiple") and x.endswith(".obj") and not "epvs" in x])
+        filenames.extend([x for x in os.listdir(outputDir) if x.endswith(".spheres")])
         if os.path.exists(os.path.join(outputDir,"multiple_wmh_lesiondata.csv")):
             filenames.extend(["multiple_wmh_lesiondata.csv"])
         if os.path.exists(os.path.join(outputDir,"multiple_cmb_lesiondata.csv")):

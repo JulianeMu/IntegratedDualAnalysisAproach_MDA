@@ -156,40 +156,19 @@ def write_multiple_obj_files(verts, faces, normals, outputfile):
     return filenames
 
 
-# writes one OBJ per accumulated lesion load
-def write_multiple_obj_single_file(verts, faces, normals, outputfile):
-    # find connected components
-    outputfile = outputfile + ".obj"
-    edges = []
-    for face in faces:
-        edges.extend(list(itertools.combinations(face, 2)))
-    g = nx.from_edgelist(edges)
+# extracting spheres instead of marching cubes
+def write_spheres_file(image, outputpath, lesiontype):
+    p = image.transpose(2,0,1)
+    verts = np.array(np.where(p>=1)).T
+    values = p[np.where(p>=1)]
+    spacing = np.array([1, 1, 1])
+    verts = verts*spacing
+    verts[:, 1] = p.shape[1] * spacing[1] - verts[:, 1]
 
-    # compute connected components and print results
-    components = list(nx.algorithms.components.connected_components(g))
-
-    with open(outputfile, 'w') as thefile:
-        for item in verts:
-            thefile.write("v {0} {1} {2}\n".format(item[0],item[1],item[2]))
-
-        for i, component in enumerate(components):
-            filter = np.apply_along_axis(lambda x: x[0] in component and
-                                                   x[1] in component and
-                                                   x[2] in component, 1, faces)
-            vertex_filter = [v_idx in component for v_idx in range(verts.shape[0])]
-            filtered_normals = normals[vertex_filter]
-            filtered_faces = faces[filter] + 1
-            filtered_faces = filtered_faces[:, [0, 2, 1]]
-
-            thefile.write(f"o Component_{i}\n")
-
-            for item in filtered_normals:
-                thefile.write("vn {0} {1} {2}\n".format(item[0], item[1], item[2]))
-
-            for item in filtered_faces:
-                thefile.write("f {0}//{0} {1}//{1} {2}//{2}\n".format(item[0], item[1], item[2]))
-
-    return [outputfile.split(os.sep)[-1]]
+    with open (os.path.join(outputpath, lesiontype + ".spheres"),"w") as f:
+        for i,sphere in enumerate(verts):
+            f.write(f"{sphere[0]} {sphere[1]} {sphere[2]} {values[i]}\n")
+    return [lesiontype + ".spheres"]
 
 
 # add lesionmaps
@@ -259,6 +238,7 @@ def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath, 
 
     return "combined.nii.gz", finalImage, combinedColormap
 
+# writes one OBJ per accumulated lesion load
 def create_layered_meshes(image, outputpath, filetype, basename = "add_", exportLayerMask = False):
     filenames = []
     image = image.transpose(2,0,1)
@@ -397,7 +377,7 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
         f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 255\n")
         f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 255\n")
         f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 255\n")
-        f.write(str(int(combinedOffset+5))+" combined_parcellation 128 255 102 255\n")
+        f.write(str(int(combinedOffset+5))+" combined_parcellation 255 255 255 255\n")
         global parcellation_colortable_value
         parcellation_colortable_value = int(combinedOffset+5)
 
@@ -456,7 +436,7 @@ def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, out
         f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 255\n")
         f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 255\n")
         f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 255\n")
-        f.write(str(int(combinedOffset+5))+" combined_parcellation 128 255 102 255\n")
+        f.write(str(int(combinedOffset+5))+" combined_parcellation 255 255 255 255\n")
         global parcellation_colortable_value
         parcellation_colortable_value = int(combinedOffset+5)
 
@@ -487,7 +467,7 @@ def create_combined_binary_colormap(outputpath):
         f.write("5 combined_WMH_ePVS 201 255 229 255\n")
         f.write("6 combined_CMB_ePVS 0 255 8 255\n")
         f.write("7 combined_WMH_CMB_ePVS 255 237 163 255\n")
-        f.write("8 combined_parcellation 128 255 102 255\n")
+        f.write("8 combined_parcellation 255 255 255 255\n")
         global parcellation_colortable_value
         parcellation_colortable_value = 8
 
@@ -530,3 +510,10 @@ def createParcellationSlices(combined_array, image_masks, original_image, output
     writer.Execute(finalImageFile)
 
     return os.path.join(outputpath, "combined_parcellation.nii.gz")
+
+
+if __name__ == "__main__":
+    import SimpleITK as sitk
+    img = sitk.ReadImage("..\\..\\resources\\input\\0\\epvstransformed.nii.gz")
+    a = sitk.GetArrayFromImage(img)
+    write_spheres_file(a, "..\\..\\resources\\output\\0", "epvs")
