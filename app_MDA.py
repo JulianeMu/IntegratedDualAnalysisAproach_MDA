@@ -53,7 +53,8 @@ id_data_type__date = "date"
 # merged_all = pd.read_csv("resources/Repro_FastSurfer_run-01_cleaned.csv", keep_default_na=False, na_values=[""])
 
 # synthetic
-merged_all = pd.read_csv("resources/synthetic_dates_missingness2_small.csv", keep_default_na=False, na_values=[""])
+print(os.getcwd())
+merged_all = pd.read_csv(os.path.join("resources","synthetic_dates_missingness2_small.csv"), keep_default_na=False, na_values=[""])
 
 #merged_all = pd.read_csv("resources/clinical_data_imputed.csv", keep_default_na=False, na_values=[""])
 
@@ -453,12 +454,22 @@ def create_meshes_of_patient(patientname):
         filenames.extend([colortable])
     else:
         #
-        wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz'))
-        wmh_mat = sitk.GetArrayFromImage(wmhImage)
-        cmbImage = sitk.ReadImage(os.path.join(inputDir, 'cmb.nii.gz'))
-        cmb_mat = sitk.GetArrayFromImage(cmbImage)
-        epvsImage = sitk.ReadImage(os.path.join(inputDir, 'epvs.nii.gz'))
-        epvs_mat = sitk.GetArrayFromImage(epvsImage)
+        if os.path.exists(os.path.join(inputDir, "wmh.nii.gz")):
+            wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz'))
+            wmh_mat = sitk.GetArrayFromImage(wmhImage)
+        else:
+            wmh_mat = np.zeros(volume_size)
+
+        if os.path.exists(os.path.join(inputDir, "cmb.nii.gz")):
+            cmbImage = sitk.ReadImage(os.path.join(inputDir, 'cmb.nii.gz'))
+            cmb_mat = sitk.GetArrayFromImage(cmbImage)
+        else:
+            cmb_mat = np.zeros(volume_size)
+        if os.path.exists(os.path.join(inputDir, "epvs.nii.gz")):
+            epvsImage = sitk.ReadImage(os.path.join(inputDir, 'epvs.nii.gz'))
+            epvs_mat = sitk.GetArrayFromImage(epvsImage)
+        else:
+            epvs_mat = np.zeros(volume_size)
         combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,flairImage,outputDir)
         #
         filenames.extend(["combinedcolortable.txt"])
