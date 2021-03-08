@@ -112,7 +112,16 @@
      </div>
      <div id="center_view_left" style="width:10%; height:100%; float:left">
          <div style="height: calc(var(--items_height) + 5px)">
-             <div id="buttons" class="buttons_class">
+             <div id="id_BEP_legend_div" class="bullseye_class" style="width: 100%">
+                 <div id="id_BEP_legend_heading" class="class_heading"></div>
+                 <div class="bullseye_set_view_class">
+                     <div id="id_BEP_legend_heading_lobes" class="class_heading"></div>
+                     <div id="id_BEP_legend_lobes_img"></div>
+                     <div id="id_BEP_legend_heading_shells" class="class_heading"></div>
+                     <div id="id_BEP_legend_shells_img"></div>
+                 </div>
+             </div>
+             <div class="buttons_class">
                  <div id="id_view_selection" class="class_heading"></div>
                  <div class="each_button_set_view_class">
                      <button type = "button" onclick = "showSingleSelection()" style="width: fit-content; min-width: 50px; margin-right: 5px; float: left">
@@ -127,7 +136,7 @@
                      <div id="id_show_missing_image_data" style="color: black"></div>
                  </div>
              </div>
-             <div id="buttons" class="buttons_class">
+             <div class="buttons_class">
                  <div id="id_compare_individual_selections" class="class_heading"></div>
                  <div class="each_button_set_view_class">
                      <button type = "button" onclick = "storeIDs()" style="width: fit-content; min-width: 50px; margin-right: 5px">
@@ -145,8 +154,8 @@
              </div>
          </div>
      </div>
-     <div id="center_view_right" style="width:20%; height:100%; float:left; padding-left: calc(2* var(--padding))">
-         <div class="bullseye_class" style="height: 100%">
+     <div id="center_view_right" style="width:20%; height:100%; float:left;">
+         <div class="bullseye_class" style="height: 100%; width: calc(100% - 2*var(--padding)); margin-left: 0">
              <div id="id_bullseye_box" class="class_heading"></div>
              <div class="bullseye_set_view_class">
                  <div id="single_bullseye_view">

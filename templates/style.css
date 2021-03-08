@@ -312,9 +312,8 @@ input:checked + .slider:before {
 }
 
 .buttons_class{
-    /*width: calc(50% - 2*var(--padding));*/
+    width: calc(100% - 4*var(--padding));
     /*height: fit-content;*/
-    width: 100%;
     overflow: hidden;
     background-color: var(--items-background-color);
     padding: var(--padding);
@@ -378,4 +377,30 @@ input:checked + .slider:before {
 
 #single_bullseye_view{
     height: 95%;
+}
+
+#id_BEP_legend_lobes_img:hover {
+    background: url("resources/BEP_lobes_color.png") no-repeat;
+    background-size: 100%;
+}
+#id_BEP_legend_lobes_img {
+    width: min(80%,100px);
+    margin-left: auto;
+    margin-right: auto;
+    background: url("resources/BEP_lobes.png") no-repeat;
+    background-size: 100%;
+    padding-top: min(80%,100px);
+}
+
+#id_BEP_legend_shells_img:hover {
+    background: url("resources/BEP_shells_color.png") no-repeat;
+    background-size: 100%;
+}
+#id_BEP_legend_shells_img {
+    width: min(80%,100px);
+    margin-left: auto;
+    margin-right: auto;
+    background: url("resources/BEP_shells.png") no-repeat;
+    background-size: 100%;
+    padding-top: min(80%,100px);
 }

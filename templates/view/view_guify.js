@@ -474,12 +474,17 @@ function thresholdMeshLabelmaps(values, lesiontype){
     if(!_data)
         return
     for(let i = 0; i < _data.meshlabelmap.meshes.length; i++){
-        let filename = _data.meshlabelmap.file[i].name
+        let filename = _data.meshlabelmap.meshes[i].file //_data.meshlabelmap.file[i].name
         if(filename.includes(lesiontype)){
             if(filename.startsWith("multiple")){
                 _data.meshlabelmap.meshes[i].visible = values[1] >= 1 && values[0] <= 1
             } else {
-                let lesionload = Number(filename.split("_")[2].split(".")[0])
+                let lesionload = 0;
+                if(typeof _data.meshlabelmap.meshes[i].lesionload === "undefined") {
+                    lesionload = Number(filename.split("_")[2].split(".")[0])
+                } else {
+                    lesionload = _data.meshlabelmap.meshes[i].lesionload;
+                }
                 _data.meshlabelmap.meshes[i].visible = values[1] >= lesionload && values[0] <= lesionload
             }
         }

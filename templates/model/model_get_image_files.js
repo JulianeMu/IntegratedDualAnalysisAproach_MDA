@@ -127,8 +127,18 @@ function initialize_scene(callback) {
 
     add_heading("id_view_selection", "One Subset");
     add_heading("id_compare_individual_selections","Two Subsets")
-    add_heading("id_bullseye_box", "Lesion Loads");
+    add_heading("id_bullseye_box", "");
     add_heading("id_saved_selection_heading", "Saved Selection:");
+    add_heading("id_BEP_legend_heading", "Lesion Loads");
+    add_heading("id_BEP_legend_heading_lobes", "Legend Lobes");
+    add_heading("id_BEP_legend_heading_shells", "Legend Shells");
+
+
+    var tippy_instances_bullseye_legend_lobes = tippy(document.getElementById("id_BEP_legend_lobes_img"),{followCursor:true});
+    tippy_instances_bullseye_legend_lobes.setContent('Parcellation into Lobes <br> <b>Front:</b> Frontal <br> <b>Par:</b> Parietal <br> <b>Temp:</b> Temporal <br> <b>Occ:</b> Occipital <br> <b>BGIT:</b>  basal ganglia, thalami & infratentorial regions');
+
+    var tippy_instances_bullseye_legend_shells = tippy(document.getElementById("id_BEP_legend_shells_img"),{followCursor:true});
+    tippy_instances_bullseye_legend_shells.setContent("testbubulove");
 }
 
 function initialize_scene_tmpwmh(callback) {
