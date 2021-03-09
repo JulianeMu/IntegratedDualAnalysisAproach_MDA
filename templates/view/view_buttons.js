@@ -42,7 +42,7 @@ function deleteIDs() {
 function getPatientIDs() {
     for (let column in column_values_grouped){
         column = column_values_grouped[column]
-        if (column.id === "id_index")
+        if (column.id === "id_pseudonym")
             return column.column_values
     }
 }

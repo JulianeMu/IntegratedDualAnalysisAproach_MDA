@@ -105,12 +105,12 @@
  <body id='body' class='webgl_enabled' style="height:100%">
 
  <div id="view" class="view_class" style="height:100%">
-     <div id="left_view" style="width:40%; float:left">
+     <div id="left_view" style="width:50%; float:left">
          <div id="dimensions" class="dimensions_class"></div>
          <div id="items" class="items_class"></div>
          <div id="likelihood_of_correlation" class="likelihood_of_correlation_class"></div>
      </div>
-     <div id="center_view_left" style="width:10%; height:100%; float:left">
+     <div id="center_view_left" style="width:5%; height:100%; float:left">
          <!-- < style="height: calc(var(--items_height) + 5px)"> -->
              <div id="id_BEP_legend_div" class="bullseye_class" style="width: 100%">
                  <div id="id_BEP_legend_heading" class="class_heading"></div>
@@ -155,15 +155,16 @@
                  <div id="id_missing_lesionsdata_heading" class="class_heading"></div>
                  <div class="each_button_set_view_class">
                      <div id="id_show_missing_image_data" style="color: black"></div>
+                     <!--<div style="display: block; min-height: 230px"></div>-->
                  </div>
              </div>
      </div>
-     <div id="center_view_right" style="width:20%; height:100%; float:left;">
+     <div id="center_view_right" style="width:15%; height:100%; float:left;">
          <div class="bullseye_class" style="height: 100%; width: calc(100% - 2*var(--padding)); margin-left: 0">
              <div id="id_bullseye_box" class="class_heading"></div>
              <div class="bullseye_set_view_class">
                  <div id="single_bullseye_view">
-                     <div style="display: block; min-height: 5%"></div>
+                     <div style="display: block; min-height: 2.5%"></div>
                      <div class="box">
                          <div class="content" id="bullseye_wmh"></div>
                      </div>
@@ -392,9 +393,9 @@
      <div id="right_view" style="width:30%; height:100%; float:left">
          <div id="pause" style="top: 0; display: none; position: absolute; width: 100%; height: 100%; z-index: 100000; background-color: rgba(128, 128, 128, 0.8);"> </div>
          <div id='3d' class='threeDRenderer' style="width:100%; height:66%;">
-             <div id="colormap_wmh" style="position: absolute; left: 10px; bottom: 5px"></div>
+             <div id="colormap_epvs" style="position: absolute; left: 10px; bottom: 5px"></div>
              <div id="colormap_cmb" style="position: absolute; left: 10px; bottom: 70px"></div>
-             <div id="colormap_epvs" style="position: absolute; left: 10px; bottom: 135px"></div>
+             <div id="colormap_wmh" style="position: absolute; left: 10px; bottom: 135px"></div>
              <div id="colormap_overlaps" style="position: absolute; left: 10px; bottom: 205px"></div>
          </div>
 

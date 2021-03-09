@@ -9,6 +9,13 @@ def get_lesion_mask_of_patient(patientname, lesiontype):
             return os.path.join("resources", "input", "patients", patientname, lesiontype, file_candidates[0])
     return None
 
+def get_volume_of_patient(patientname, lesiontype):
+    if os.path.exists(os.path.join("resources", "input", "patients", patientname, lesiontype)):
+        file_candidates = [file for file in os.listdir(os.path.join("resources", "input", "patients", patientname, lesiontype)) if file.endswith("Warped.nii.gz")]
+        if len(file_candidates) > 0:
+            return os.path.join("resources", "input", "patients", patientname, lesiontype, file_candidates[0])
+    return None
+
 def scale_single_image(filename):
     if filename is not None and not os.path.exists(filename.split(".")[0]+"_Scaled.nii.gz"):
         print(filename)
@@ -34,5 +41,7 @@ if __name__ == "__main__":
     for patient in patients:
         for lesiontype in ["wmh", "cmb", "epvs"]:
             filename = get_lesion_mask_of_patient(patient, lesiontype)
+            scale_single_image(filename)
+            filename = get_volume_of_patient(patient, lesiontype)
             scale_single_image(filename)
     scale_single_image(os.path.join("resources", "input", "default", "CerebrA_brain.nii"))

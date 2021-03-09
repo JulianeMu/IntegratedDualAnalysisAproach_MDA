@@ -54,7 +54,7 @@ id_data_type__date = "date"
 
 # synthetic
 print(os.getcwd())
-merged_all = pd.read_csv(os.path.join("resources","synthetic_dates_missingness2_small.csv"), keep_default_na=False, na_values=[""])
+merged_all = pd.read_csv(os.path.join("resources", "CSVD_minimal_short.csv"), keep_default_na=False, na_values=[""]) #synthetic_dates_missingness2_small.csv
 
 #merged_all = pd.read_csv("resources/clinical_data_imputed.csv", keep_default_na=False, na_values=[""])
 
@@ -441,6 +441,7 @@ def create_meshes_of_patient(patientname):
         if wmh_filename:
             wmhImage = sitk.ReadImage(wmh_filename)
             wmh_mat = sitk.GetArrayFromImage(wmhImage)
+            wmh_mat = (wmh_mat > 0) * 1
             filenames.extend(create_obj_lesions(wmh_mat, outputDir, "wmh"))
         else:
             wmh_mat = np.zeros(volume_size)
@@ -449,6 +450,7 @@ def create_meshes_of_patient(patientname):
         if cmb_filename:
             cmbImage = sitk.ReadImage(cmb_filename)
             cmb_mat = sitk.GetArrayFromImage(cmbImage)
+            cmb_mat = (cmb_mat > 0) * 1
             filenames.extend(create_obj_lesions(cmb_mat, outputDir, "cmb"))
         else:
             cmb_mat = np.zeros(volume_size)
@@ -457,7 +459,8 @@ def create_meshes_of_patient(patientname):
         if epvs_filename:
             epvsImage = sitk.ReadImage(epvs_filename)
             epvs_mat = sitk.GetArrayFromImage(epvsImage)
-            filenames.extend(write_spheres_file(epvs_mat, outputDir, "epvs")) # or "create_obj_lesions()"
+            epvs_mat = (epvs_mat > 0) * 1
+            filenames.extend(create_obj_lesions(epvs_mat, outputDir, "epvs")) # "write_spheres_file" or "create_obj_lesions()"
         else:
             epvs_mat = np.zeros(volume_size)
 
@@ -468,6 +471,7 @@ def create_meshes_of_patient(patientname):
         if wmh_filename:
             wmhImage = sitk.ReadImage(wmh_filename)
             wmh_mat = sitk.GetArrayFromImage(wmhImage)
+            wmh_mat = (wmh_mat > 0) * 1
         else:
             wmh_mat = np.zeros(volume_size)
 
@@ -475,6 +479,7 @@ def create_meshes_of_patient(patientname):
         if cmb_filename:
             cmbImage = sitk.ReadImage(cmb_filename)
             cmb_mat = sitk.GetArrayFromImage(cmbImage)
+            cmb_mat = (cmb_mat > 0) * 1
         else:
             cmb_mat = np.zeros(volume_size)
 
@@ -482,6 +487,7 @@ def create_meshes_of_patient(patientname):
         if epvs_filename:
             epvsImage = sitk.ReadImage(epvs_filename)
             epvs_mat = sitk.GetArrayFromImage(epvsImage)
+            epvs_mat = (epvs_mat > 0) * 1
         else:
             epvs_mat = np.zeros(volume_size)
 
@@ -581,22 +587,29 @@ def add_patient_labelmaps():
         return
     if not os.path.exists(os.path.join('resources', 'output', 'tmp')):
         os.mkdir(os.path.join('resources', 'output', 'tmp'))
+    print(patients)
     for patient in patients:
         patient = str(patient)
-        if os.path.exists(os.path.join('resources', 'input', patient, 'wmh.nii.gz')):
-            patientImageWMH = sitk.ReadImage(os.path.join('resources', 'input', patient, 'wmh.nii.gz'))
+
+        wmh_filename = get_lesion_mask_of_patient(patient, "wmh")
+        if wmh_filename:
+            patientImageWMH = sitk.ReadImage(wmh_filename)
             wmhImages.append(sitk.GetArrayFromImage(patientImageWMH))
             originalImage = patientImageWMH
         else:
             missing_wmh.add(patient)
-        if os.path.exists(os.path.join('resources', 'input', patient, 'cmb.nii.gz')):
-            patientImageCMB = sitk.ReadImage(os.path.join('resources', 'input', patient, 'cmb.nii.gz'))
+
+        cmb_filename = get_lesion_mask_of_patient(patient, "cmb")
+        if cmb_filename:
+            patientImageCMB = sitk.ReadImage(cmb_filename)
             cmbImages.append(sitk.GetArrayFromImage(patientImageCMB))
             originalImage = patientImageCMB
         else:
             missing_cmb.add(patient)
-        if os.path.exists(os.path.join('resources', 'input', patient, 'epvs.nii.gz')):
-            patientImageEPVS = sitk.ReadImage(os.path.join('resources', 'input', patient, 'epvs.nii.gz'))
+
+        epvs_filename = get_lesion_mask_of_patient(patient, "epvs")
+        if epvs_filename:
+            patientImageEPVS = sitk.ReadImage(epvs_filename)
             epvsImages.append(sitk.GetArrayFromImage(patientImageEPVS))
             originalImage = patientImageEPVS
         else:
@@ -647,20 +660,26 @@ def subPatientLabelmaps():
     for factor, patients in zip([-1, 1], [patients1, patients2]):
         for patient in patients:
             patient = str(patient)
-            if os.path.exists(os.path.join('resources', 'input', patient, 'wmh.nii.gz')):
-                patientImageWMH = sitk.ReadImage(os.path.join('resources', 'input', patient, 'wmh.nii.gz'))
+
+            wmh_filename = get_lesion_mask_of_patient(patient, "wmh")
+            if wmh_filename:
+                patientImageWMH = sitk.ReadImage(wmh_filename)
                 wmhImages.append(sitk.GetArrayFromImage(patientImageWMH)*factor)
                 originalImage = patientImageWMH
             else:
                 missing_wmh.add(patient)
-            if os.path.exists(os.path.join('resources', 'input', patient, 'cmb.nii.gz')):
-                patientImageCMB = sitk.ReadImage(os.path.join('resources', 'input', patient, 'cmb.nii.gz'))
+
+            cmb_filename = get_lesion_mask_of_patient(patient, "cmb")
+            if cmb_filename:
+                patientImageCMB = sitk.ReadImage(cmb_filename)
                 cmbImages.append(sitk.GetArrayFromImage(patientImageCMB)*factor)
                 originalImage = patientImageCMB
             else:
                 missing_cmb.add(patient)
-            if os.path.exists(os.path.join('resources', 'input', patient, 'epvs.nii.gz')):
-                patientImageEPVS = sitk.ReadImage(os.path.join('resources', 'input', patient, 'epvs.nii.gz'))
+
+            epvs_filename = get_lesion_mask_of_patient(patient, "epvs")
+            if epvs_filename:
+                patientImageEPVS = sitk.ReadImage(epvs_filename)
                 epvsImages.append(sitk.GetArrayFromImage(patientImageEPVS)*factor)
                 originalImage = patientImageEPVS
             else:

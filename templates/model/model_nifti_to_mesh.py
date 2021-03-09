@@ -312,9 +312,9 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
     :return: filename
     """
 
-    cmbOffset = 23
-    epvsOffset = 20+cmbOffset
-    combinedOffset = 30+epvsOffset
+    #cmbOffset = 23
+    #epvsOffset = 20+cmbOffset
+    #combinedOffset = 30+epvsOffset
 
 
     def writeBinnedColormap(numberOfColors, cmap, type, f, offset, minus):
@@ -389,9 +389,9 @@ def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, out
     :param outputpath: outputpath
     :return: filename
     """
-    cmbOffset = 12
-    epvsOffset = 18+cmbOffset
-    combinedOffset = 100+epvsOffset
+    #cmbOffset = 12
+    #epvsOffset = 18+cmbOffset
+    #combinedOffset = 100+epvsOffset
 
     def writeBinnedColormap(numberOfColors, nameOfColormap, type, f, offset):
         if numberOfColors > 10:
@@ -460,14 +460,14 @@ def create_combined_binary_colormap(outputpath):
         f.write("# combined binary" + "\n")
         f.write("0 background 0 0 0 0\n")
         #f.write(str(1) + " WMH " + " ".join([str(math.floor(x*255)) for x in samplingColors_wmh[1]]) + "\n")
-        f.write(str(1) + " WMH 0 0 255 255\n")
-        f.write(str(2) + " CMB " + " ".join([str(math.floor(x*255)) for x in samplingColors_cmb[1]]) + "\n")
-        f.write(str(3) + " ePVS " + " ".join([str(math.floor(x*255)) for x in samplingColors_epvs[1]]) + "\n")
+        f.write(str(1) + " WMH 243 115 31 255\n")
+        f.write(str(2) + " CMB 111 105 224 255\n")
+        f.write(str(3) + " ePVS 116 196 118 255\n")
 
-        f.write("4 combined_WMH_CMB 255 128 128 255\n")
-        f.write("5 combined_WMH_ePVS 201 255 229 255\n")
-        f.write("6 combined_CMB_ePVS 0 255 8 255\n")
-        f.write("7 combined_WMH_CMB_ePVS 255 237 163 255\n")
+        f.write("4 combined_WMH_CMB 196 30 171 255\n")
+        f.write("5 combined_WMH_ePVS 255 204 47 255\n")
+        f.write("6 combined_CMB_ePVS 51 181 255 255\n")
+        f.write("7 combined_WMH_CMB_ePVS 255 0 0 255\n")
         f.write("8 combined_parcellation 255 255 255 255\n")
         global parcellation_colortable_value
         parcellation_colortable_value = 8
