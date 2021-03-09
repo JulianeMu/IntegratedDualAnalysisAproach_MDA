@@ -25,7 +25,7 @@ def create_obj_brain(image, outputpath, threshold):
     verts = verts*spacing
     verts[:, 1] = p.shape[1] * spacing[1] - verts[:, 1]
 
-    # find connected components
+    """# find connected components
     edges = []
     for face in faces:
         edges.extend(list(itertools.combinations(face, 2)))
@@ -60,7 +60,8 @@ def create_obj_brain(image, outputpath, threshold):
                                                  x[2] in largestComponent, 1, faces)
     remapped_faces = remap(faces[filter_faces])  # apply the remap function to each face
 
-    write_single_obj_file(filtered_vertices, remapped_faces, filtered_normals, os.path.join(outputpath,"brain.obj"))
+    write_single_obj_file(filtered_vertices, remapped_faces, filtered_normals, os.path.join(outputpath,"brain.obj"))"""
+    write_single_obj_file(verts, faces, normals, os.path.join(outputpath,"brain.obj"))
 
     return ["brain.obj"]
 

@@ -843,7 +843,12 @@ function createMeshLabelmap(data, i) {
         if (filename_parts[0] === "add" && combined_colortable.type !== "binary")
             meshlabelmap.color = combined_colortable[filename_parts[1]][filename_parts[2]]
         else if (filename_parts[0] === "multiple" || combined_colortable.type === "binary")
-            meshlabelmap.color = combined_colortable[filename_parts[1]]
+            if (typeof(combined_colortable[filename_parts[1]]) === "object"){
+                meshlabelmap.color = combined_colortable[filename_parts[1]][1]
+            } else {
+                meshlabelmap.color = combined_colortable[filename_parts[1]]
+            }
+
     } else {
         meshlabelmap.color = meshlabelmap_color[data['meshlabelmap']['type'][i]];
     }

@@ -132,6 +132,168 @@ function initialize_scene(callback) {
     add_heading("id_BEP_legend_heading", "Lesion Loads");
     add_heading("id_BEP_legend_heading_lobes", "Legend Lobes");
     add_heading("id_BEP_legend_heading_shells", "Legend Shells");
+    add_heading("id_missing_lesionsdata_heading", "Lesions not occurring");
+
+
+
+    var tippy_instances_bullseye_legend_lobes = tippy(document.getElementById("id_BEP_legend_lobes_img"),{followCursor:true});
+    tippy_instances_bullseye_legend_lobes.setContent('Parcellation into Lobes <br> <b>Front:</b> Frontal <br> <b>Par:</b> Parietal <br> <b>Temp:</b> Temporal <br> <b>Occ:</b> Occipital <br> <b>BGIT:</b>  basal ganglia, thalami & infratentorial regions');
+
+    var tippy_instances_bullseye_legend_shells = tippy(document.getElementById("id_BEP_legend_shells_img"),{followCursor:true});
+    tippy_instances_bullseye_legend_shells.setContent("testbubulove");
+}
+
+function initialize_scene2(callback) {
+    $.ajax({
+        url: "http://127.0.0.1:5000/get_patients/",
+        type: "POST",
+        contentType: "application/json",
+    }).done(function (patientnames) {
+        $.ajax({
+            url: "http://127.0.0.1:5000/get_static_meshes/",
+            type: "POST",
+            contentType: "application/json",
+        }).done(function (meshfilenames) {
+            console.log(meshfilenames)
+            $.ajax({
+                url: "http://127.0.0.1:5000/create_meshes_of_patient/"+patientnames[0],
+                type: "POST",
+                contentType: "application/json",
+            }).done(function (patientfilenames){
+                var total_files = patientfilenames.length+meshfilenames.length+2 //volume and combinedlabelmap
+                var loaded_files = []
+
+                // NIFTI Volume
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function(){
+                    if (this.readyState == 4 && this.status == 200){
+                        //this.response is what you're looking for
+                        b = new Blob([this.response])
+                        f = new File([b], 'FLAIR.nii.gz')
+                        loaded_files.push(f)
+                        if (loaded_files.length === total_files){
+                            read(loaded_files)
+                        }
+                    }
+                }
+                xhr.open("POST", "http://127.0.0.1:5000/get_volume_of_patient/"+patientnames[0], true);
+                xhr.responseType = 'blob';
+                xhr.send();
+
+                // NIFTI combined
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function(){
+                    if (this.readyState == 4 && this.status == 200){
+                        //this.response is what you're looking for
+                        b = new Blob([this.response])
+                        f = new File([b], 'combined.nii.gz')
+                        loaded_files.push(f)
+                        if (loaded_files.length === total_files){
+                            read(loaded_files)
+                        }
+                    }
+                }
+                xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/"+patientnames[0]+'/combined', true);
+                xhr.responseType = 'blob';
+                xhr.send();
+
+                // NIFTI CMB
+                /*var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function(){
+                    if (this.readyState == 4 && this.status == 200){
+                        //this.response is what you're looking for
+                        b = new Blob([this.response])
+                        f = new File([b], 'cmb.nii.gz')
+                        loaded_files.push(f)
+                        if (loaded_files.length === total_files){
+                            read(loaded_files)
+                        }
+                    }
+                }
+                xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/"+patientnames[0]+'/cmb', true);
+                xhr.responseType = 'blob';
+                xhr.send();*/
+
+                // MESH
+                patientfilenames.forEach(function (filename) {
+                    $.ajax({
+                        url: "http://127.0.0.1:5000/get_mesh_file/"+patientnames[0]+"/"+filename,
+                        type: "POST",
+                    }).done(function(filedata) {
+                        b = new Blob([filedata],{type:"text/plain"})
+                        f = new File([b], filename)
+                        loaded_files.push(f)
+                        if (loaded_files.length === total_files){
+                            read(loaded_files)
+                        }
+                    });
+                })
+                meshfilenames.forEach(function (filename) {
+                    $.ajax({
+                        url: "http://127.0.0.1:5000/get_mesh_file/"+patientnames[0]+"/"+filename,
+                        type: "POST",
+                    }).done(function(filedata) {
+                        b = new Blob([filedata],{type:"text/plain"})
+                        f = new File([b], filename)
+                        loaded_files.push(f)
+                        if (loaded_files.length === total_files){
+                            read(loaded_files)
+                        }
+                    });
+                })
+            })
+        })
+    })
+    /* $.ajax({
+         url: "http://127.0.0.1:5000/get_file_names/",
+         type: "POST",
+         contentType: "application/json",
+     }).done(function(filelist) {
+         var loaded_files = []
+         var total_files = filelist[0].length + filelist[1].length
+
+         filelist[0].forEach(function (filename) {
+             var xhr = new XMLHttpRequest();
+             xhr.onreadystatechange = function(){
+                 if (this.readyState == 4 && this.status == 200){
+                     //this.response is what you're looking for
+                     b = new Blob([this.response])
+                     f = new File([b], filename)
+                     loaded_files.push(f)
+                     if (loaded_files.length === total_files){
+                         read(loaded_files)
+                     }
+                 }
+             }
+             xhr.open("POST", "http://127.0.0.1:5000/get_nifti_file/"+filename, true);
+             xhr.responseType = 'blob';
+             xhr.send();
+         })
+
+         filelist[1].forEach(function (filename) {
+             $.ajax({
+                 url: "http://127.0.0.1:5000/get_mesh_file/"+filename,
+                 type: "POST",
+             }).done(function(filedata) {
+                 b = new Blob([filedata],{type:"text/plain"})
+                 f = new File([b], filename)
+                 loaded_files.push(f)
+                 if (loaded_files.length === total_files){
+                     read(loaded_files)
+                 }
+             });
+         })
+     });*/
+
+    add_heading("id_view_selection", "One Subset");
+    add_heading("id_compare_individual_selections","Two Subsets")
+    add_heading("id_bullseye_box", "");
+    add_heading("id_saved_selection_heading", "Saved Selection:");
+    add_heading("id_BEP_legend_heading", "Lesion Loads");
+    add_heading("id_BEP_legend_heading_lobes", "Legend Lobes");
+    add_heading("id_BEP_legend_heading_shells", "Legend Shells");
+    add_heading("id_missing_lesionsdata_heading", "Lesions not occurring");
+
 
 
     var tippy_instances_bullseye_legend_lobes = tippy(document.getElementById("id_BEP_legend_lobes_img"),{followCursor:true});

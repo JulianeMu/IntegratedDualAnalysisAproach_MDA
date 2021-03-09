@@ -393,85 +393,99 @@ def add_headers(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     return response
 
-@app.route('/create_meshes_of_patient/<string:patientname>', methods=["POST"])
-def create_meshes_of_patient(patientname):
-    inputDir = os.path.join('resources', 'input', patientname)
-    outputDir = os.path.join('resources', 'output', patientname)
+def preprocess_brain_mesh():
+    global flairImage
+    global flairArray
+    global defaultDir
     defaultDir = os.path.join("resources", "input", "default")
-    if not os.path.exists(outputDir):
-        os.makedirs(outputDir)
-
-    filenames = []
-
-    if not os.path.exists(os.path.join(inputDir, 'FLAIR.nii.gz')):
-        print("patient", patientname, "image data does not exist")
+    if not os.path.exists(os.path.join(defaultDir, 'CerebrA_brain_Scaled.nii.gz')):
+        print("default brain does not exist")
         return jsonify([])
 
     # load NIFTI volume data
     logging.debug("Process Volume Data")
-    flairImage = sitk.ReadImage(os.path.join(inputDir, 'FLAIR.nii.gz'))
-    volume_size = sitk.GetArrayFromImage(flairImage).shape
-    if not os.path.exists(os.path.join(outputDir, 'brain.obj')):
-        filenames.extend(create_obj_brain(sitk.GetArrayFromImage(flairImage), outputDir, 800))
-    else:
-        filenames.extend(["brain.obj"])
+    flairImage = sitk.ReadImage(os.path.join(defaultDir, 'CerebrA_brain_Scaled.nii.gz'))
+    flairArray = sitk.GetArrayFromImage(flairImage)
+    if not os.path.exists(os.path.join(defaultDir, 'brain.obj')):
+        create_obj_brain(sitk.GetArrayFromImage(flairImage), defaultDir, 0.5)
 
-    if not os.path.exists(defaultDir):
-        os.mkdir(defaultDir)
+def get_parcellation_meshes():
+    filenames = []
     if not len([x for x in os.listdir(defaultDir) if x.endswith(".obj") and x.startswith("parcellation")]) == 36:
-        image = sitk.ReadImage(os.path.join("resources", "input", "0", "bullseye_wmparc.nii.gz"))
+        image = sitk.ReadImage(os.path.join("resources", "input", "bullseye", "bullseye_wmparc.nii.gz"))
         arr = sitk.GetArrayFromImage(image)
         filenames.extend(createParcellationMeshes(arr))
     else:
         filenames.extend([x for x in os.listdir(defaultDir) if x.endswith(".obj") and x.startswith("parcellation")])
+    return filenames
+
+@app.route('/get_static_meshes/', methods=["POST"])
+def get_static_meshes():
+    return jsonify(get_parcellation_meshes()+["brain.obj"])
+
+
+@app.route('/create_meshes_of_patient/<string:patientname>', methods=["POST"])
+def create_meshes_of_patient(patientname):
+    inputDir = os.path.join('resources', 'input', 'patients', patientname)
+    outputDir = os.path.join('resources', 'output', patientname)
+    if not os.path.exists(outputDir):
+        os.makedirs(outputDir)
+
+    volume_size = flairArray.shape
+    filenames = []
 
     # Load NIFTI labelmap
     logging.debug("Process Labelmap Data")
     if not os.path.exists(os.path.join(outputDir, 'combinedcolortable.txt')):
-        if os.path.exists(os.path.join(inputDir,"wmh.nii.gz")):
-            wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz'))
-            #filenames.append(create_colormap(2,outputDir))
+        wmh_filename = get_lesion_mask_of_patient(patientname, "wmh")
+        if wmh_filename:
+            wmhImage = sitk.ReadImage(wmh_filename)
             wmh_mat = sitk.GetArrayFromImage(wmhImage)
             filenames.extend(create_obj_lesions(wmh_mat, outputDir, "wmh"))
         else:
             wmh_mat = np.zeros(volume_size)
-        if os.path.exists(os.path.join(inputDir,"cmb.nii.gz")):
-            cmbImage = sitk.ReadImage(os.path.join(inputDir, 'cmb.nii.gz'))
-            #filenames.append(create_colormap(2,outputDir))
+
+        cmb_filename = get_lesion_mask_of_patient(patientname, "cmb")
+        if cmb_filename:
+            cmbImage = sitk.ReadImage(cmb_filename)
             cmb_mat = sitk.GetArrayFromImage(cmbImage)
             filenames.extend(create_obj_lesions(cmb_mat, outputDir, "cmb"))
         else:
             cmb_mat = np.zeros(volume_size)
-        if os.path.exists(os.path.join(inputDir,"epvs.nii.gz")):
-            epvsImage = sitk.ReadImage(os.path.join(inputDir, 'epvs.nii.gz'))
-            #filenames.append(create_colormap(2,outputDir))
+
+        epvs_filename = get_lesion_mask_of_patient(patientname, "epvs")
+        if epvs_filename:
+            epvsImage = sitk.ReadImage(epvs_filename)
             epvs_mat = sitk.GetArrayFromImage(epvsImage)
-            #filenames.extend(create_obj_lesions(epvs_mat, outputDir, "epvs"))
-            filenames.extend(write_spheres_file(epvs_mat, outputDir, "epvs"))
+            filenames.extend(write_spheres_file(epvs_mat, outputDir, "epvs")) # or "create_obj_lesions()"
         else:
             epvs_mat = np.zeros(volume_size)
 
-        combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,flairImage,outputDir)
+        combined_labelmap, _, colortable = combine_labelmaps(wmh_mat, cmb_mat, epvs_mat, flairImage, outputDir)
         filenames.extend([colortable])
     else:
-        #
-        if os.path.exists(os.path.join(inputDir, "wmh.nii.gz")):
-            wmhImage = sitk.ReadImage(os.path.join(inputDir, 'wmh.nii.gz'))
+        wmh_filename = get_lesion_mask_of_patient(patientname, "wmh")
+        if wmh_filename:
+            wmhImage = sitk.ReadImage(wmh_filename)
             wmh_mat = sitk.GetArrayFromImage(wmhImage)
         else:
             wmh_mat = np.zeros(volume_size)
 
-        if os.path.exists(os.path.join(inputDir, "cmb.nii.gz")):
-            cmbImage = sitk.ReadImage(os.path.join(inputDir, 'cmb.nii.gz'))
+        cmb_filename = get_lesion_mask_of_patient(patientname, "cmb")
+        if cmb_filename:
+            cmbImage = sitk.ReadImage(cmb_filename)
             cmb_mat = sitk.GetArrayFromImage(cmbImage)
         else:
             cmb_mat = np.zeros(volume_size)
-        if os.path.exists(os.path.join(inputDir, "epvs.nii.gz")):
-            epvsImage = sitk.ReadImage(os.path.join(inputDir, 'epvs.nii.gz'))
+
+        epvs_filename = get_lesion_mask_of_patient(patientname, "epvs")
+        if epvs_filename:
+            epvsImage = sitk.ReadImage(epvs_filename)
             epvs_mat = sitk.GetArrayFromImage(epvsImage)
         else:
             epvs_mat = np.zeros(volume_size)
-        combined_labelmap,_,colortable = combine_labelmaps(wmh_mat,cmb_mat,epvs_mat,flairImage,outputDir)
+
+        combined_labelmap, _, colortable = combine_labelmaps(wmh_mat, cmb_mat, epvs_mat, flairImage, outputDir)
         #
         filenames.extend(["combinedcolortable.txt"])
         filenames.extend([x for x in os.listdir(outputDir) if x.startswith("multiple") and x.endswith(".obj") and not "epvs" in x])
@@ -491,7 +505,7 @@ def create_meshes_of_patient(patientname):
 @app.route('/get_mesh_file/<string:patientname>/<string:filename>', methods=["POST"])
 def get_mesh_file(patientname,filename):
     logging.debug("get mesh file",filename)
-    if filename.startswith("parcellation"):
+    if filename.startswith("parcellation") or filename == "brain.obj":
         return send_from_directory(os.path.join('resources', 'input', 'default'), filename)
     else:
         return send_from_directory(os.path.join('resources', 'output', patientname), filename)
@@ -499,7 +513,12 @@ def get_mesh_file(patientname,filename):
 @app.route('/get_volume_of_patient/<string:patientname>', methods=["POST"])
 def get_volume_of_patient(patientname):
     logging.debug("get volume file", patientname)
-    return send_from_directory(os.path.join('resources', 'input', patientname), 'FLAIR.nii.gz')
+    for lesiontype in ["wmh", "cmb", "epvs"]:
+        if os.path.exists(os.path.join("resources", "input", "patients", patientname, lesiontype)):
+            file_candidates = [file for file in os.listdir(os.path.join("resources", "input", "patients", patientname, lesiontype)) if file.endswith("Warped_Scaled.nii.gz")]
+            if len(file_candidates) > 0:
+                return send_from_directory(os.path.join("resources", "input", "patients", patientname, lesiontype), file_candidates[0])
+    # return send_from_directory(os.path.join('resources', 'input', 'patients', patientname), 'FLAIR.nii.gz')
 
 @app.route('/get_labelmap_of_patient/<string:patientname>/<string:lesiontype>', methods=["POST"])
 def get_labelmap_of_patient(patientname, lesiontype):
@@ -515,26 +534,33 @@ def get_labelmap_of_patient(patientname, lesiontype):
     return send_from_directory(os.path.join('resources', 'input', patientname), f'{lesiontype}.nii.gz')
 
 def preprocess_bullseyes():
-    patients = [name for name in os.listdir(os.path.join("resources", "input")) if os.path.isdir(os.path.join("resources", "input", name))]
+    patients = [name for name in os.listdir(os.path.join("resources", "input", "patients")) if os.path.isdir(os.path.join("resources", "input", "patients", name))]
     for patient in patients:
-        for filetype in ["wmh", "cmb", "epvs"]:
-            if not os.path.exists(os.path.join("resources", "output", patient, "bullseyedata_"+filetype+".txt")):
-                if os.path.exists(os.path.join("resources", "input", patient, filetype+"transformed.nii.gz")) and\
-                   os.path.exists(os.path.join("resources", "input", patient, "bullseye_wmparc.nii.gz")):
-                    print("preprocessed bullseyes of patient ", patient, " of lesiontype ", filetype)
-                    image = sitk.ReadImage(os.path.join("resources", "input", patient, "bullseye_wmparc.nii.gz"))
+        for lesiontype in ["wmh", "cmb", "epvs"]:
+            if not os.path.exists(os.path.join("resources", "output", patient, "bullseyedata_"+lesiontype+".txt")):
+                filename = get_lesion_mask_of_patient(patient, lesiontype)
+                if filename and os.path.exists(os.path.join("resources", "input", "bullseye", "bullseye_wmparc.nii.gz")):
+                    print("preprocessed bullseyes of patient ", patient, " of lesiontype ", lesiontype)
+                    image = sitk.ReadImage(os.path.join("resources", "input", "bullseye", "bullseye_wmparc.nii.gz"))
                     arr_bullseye = sitk.GetArrayFromImage(image)
-                    image_lesion = sitk.ReadImage(os.path.join("resources", "input", patient, filetype+"transformed.nii.gz"))
+                    image_lesion = sitk.ReadImage(filename)
                     arr_lesion = sitk.GetArrayFromImage(image_lesion)
                     bullseye_data = mapToBullseye(arr_bullseye, arr_lesion)
                     if not os.path.exists(os.path.join("resources", "output", patient)):
                         os.makedirs(os.path.join("resources", "output", patient))
-                    with open(os.path.join("resources", "output", patient, "bullseyedata_"+filetype+".txt"),"wb") as f:
+                    with open(os.path.join("resources", "output", patient, "bullseyedata_"+lesiontype+".txt"),"wb") as f:
                         pickle.dump(bullseye_data, f)
+
+def get_lesion_mask_of_patient(patientname, lesiontype):
+    if os.path.exists(os.path.join("resources", "input", "patients", patientname, lesiontype)):
+        file_candidates = [file for file in os.listdir(os.path.join("resources", "input", "patients", patientname, lesiontype)) if file.endswith("mask_Scaled.nii.gz")]
+        if len(file_candidates) > 0:
+            return os.path.join("resources", "input", "patients", patientname, lesiontype, file_candidates[0])
+    return None
 
 @app.route('/get_patients/', methods=["POST"])
 def get_patients():
-    patients = [name for name in os.listdir(os.path.join("resources", "input")) if os.path.isdir(os.path.join("resources", "input", name))]
+    patients = [name for name in os.listdir(os.path.join("resources", "input", "patients")) if os.path.isdir(os.path.join("resources", "input", "patients", name))]
     logging.debug(patients)
     return jsonify(patients)
 
@@ -778,5 +804,6 @@ def show2Dparcellation():
     return jsonify([os.path.join(latest_labelmap, "combined.nii.gz")])
 
 if __name__ == '__main__':
+    preprocess_brain_mesh()
     preprocess_bullseyes()
     app.run(debug=True)

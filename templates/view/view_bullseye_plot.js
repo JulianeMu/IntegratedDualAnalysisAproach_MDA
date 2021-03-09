@@ -175,11 +175,17 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
 
 function initialize_bullseyeplot() {
     $.ajax({
-        url: "http://127.0.0.1:5000/get_bullseye/0",
+        url: "http://127.0.0.1:5000/get_patients/",
         type: "POST",
         contentType: "application/json",
-    }).done(function (response) {
-        showSingleBullseye(response)
+    }).done(function (patientnames) {
+        $.ajax({
+            url: "http://127.0.0.1:5000/get_bullseye/"+patientnames[0],
+            type: "POST",
+            contentType: "application/json",
+        }).done(function (response) {
+            showSingleBullseye(response)
+        })
     })
 }
 
