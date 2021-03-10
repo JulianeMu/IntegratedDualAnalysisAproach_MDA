@@ -54,7 +54,7 @@ id_data_type__date = "date"
 
 # synthetic
 print(os.getcwd())
-merged_all = pd.read_csv(os.path.join("resources", "CSVD_minimal_short.csv"), keep_default_na=False, na_values=[""]) #synthetic_dates_missingness2_small.csv
+merged_all = pd.read_csv(os.path.join("resources", "test.csv"), keep_default_na=False, na_values=[""]) #synthetic_dates_missingness2_small.csv
 
 #merged_all = pd.read_csv("resources/clinical_data_imputed.csv", keep_default_na=False, na_values=[""])
 
@@ -518,13 +518,14 @@ def get_mesh_file(patientname,filename):
 
 @app.route('/get_volume_of_patient/<string:patientname>', methods=["POST"])
 def get_volume_of_patient(patientname):
+    #return send_from_directory(os.path.join("resources", "input", "default"), "mni_icbm152_t1_tal_nlin_asym_09c_Scaled.nii.gz")
     logging.debug("get volume file", patientname)
     for lesiontype in ["wmh", "cmb", "epvs"]:
         if os.path.exists(os.path.join("resources", "input", "patients", patientname, lesiontype)):
             file_candidates = [file for file in os.listdir(os.path.join("resources", "input", "patients", patientname, lesiontype)) if file.endswith("Warped_Scaled.nii.gz")]
             if len(file_candidates) > 0:
                 return send_from_directory(os.path.join("resources", "input", "patients", patientname, lesiontype), file_candidates[0])
-    # return send_from_directory(os.path.join('resources', 'input', 'patients', patientname), 'FLAIR.nii.gz')
+    return send_from_directory(os.path.join('resources', 'input', 'patients', patientname), 'FLAIR.nii.gz')
 
 @app.route('/get_labelmap_of_patient/<string:patientname>/<string:lesiontype>', methods=["POST"])
 def get_labelmap_of_patient(patientname, lesiontype):
@@ -535,14 +536,21 @@ def get_labelmap_of_patient(patientname, lesiontype):
         return send_from_directory(os.path.join('resources', 'output', patientname), f'{lesiontype}.nii.gz')
     if lesiontype.startswith("combined"):
         latest_labelmap = os.path.join('resources', 'output', patientname)
-        return send_from_directory(os.path.join('resources', 'output', patientname), f'{lesiontype}.nii.gz')
+        return send_from_directory(latest_labelmap, f'{lesiontype}.nii.gz')
     latest_labelmap = os.path.join('resources', 'input', patientname)
     return send_from_directory(os.path.join('resources', 'input', patientname), f'{lesiontype}.nii.gz')
+
+@app.route('/get_latest_parcellation/<string:lesiontype>', methods=["POST"])
+def get_latest_parcellation(lesiontype):
+    global latest_labelmap
+    logging.debug("get parcellation file", lesiontype)
+    print(latest_labelmap)
+    return send_from_directory(latest_labelmap, f'{lesiontype}.nii.gz')
 
 def preprocess_bullseyes():
     patients = [name for name in os.listdir(os.path.join("resources", "input", "patients")) if os.path.isdir(os.path.join("resources", "input", "patients", name))]
     for patient in patients:
-        for lesiontype in ["wmh", "cmb", "epvs"]:
+        for lesiontype, absolute in zip(["wmh", "cmb", "epvs"], [False, True, True]):
             if not os.path.exists(os.path.join("resources", "output", patient, "bullseyedata_"+lesiontype+".txt")):
                 filename = get_lesion_mask_of_patient(patient, lesiontype)
                 if filename and os.path.exists(os.path.join("resources", "input", "bullseye", "bullseye_wmparc.nii.gz")):
@@ -551,10 +559,10 @@ def preprocess_bullseyes():
                     arr_bullseye = sitk.GetArrayFromImage(image)
                     image_lesion = sitk.ReadImage(filename)
                     arr_lesion = sitk.GetArrayFromImage(image_lesion)
-                    bullseye_data = mapToBullseye(arr_bullseye, arr_lesion)
+                    bullseye_data = mapToBullseye(arr_bullseye, arr_lesion, absolute)
                     if not os.path.exists(os.path.join("resources", "output", patient)):
                         os.makedirs(os.path.join("resources", "output", patient))
-                    with open(os.path.join("resources", "output", patient, "bullseyedata_"+lesiontype+".txt"),"wb") as f:
+                    with open(os.path.join("resources", "output", patient, "bullseyedata_"+lesiontype+".txt"), "wb") as f:
                         pickle.dump(bullseye_data, f)
 
 def get_lesion_mask_of_patient(patientname, lesiontype):
@@ -814,13 +822,15 @@ def show2Dparcellation():
     selected_parcels = request.get_json()["selected_parcels"]
     image_masks = []
     for parcel in selected_parcels:
-        if os.path.exists("resources", "input", "default", "layer_mask_" + parcel + ".npz"):
-            image_masks.append(np.load("resources", "input", "default", "layer_mask_" + parcel + ".npz")["image"])
+        if os.path.exists(os.path.join("resources", "input", "default", "layer_mask_" + parcel + ".npz")):
+            image_masks.append(np.load(os.path.join("resources", "input", "default", "layer_mask_" + parcel + ".npz"))["image"])
     if len(image_masks) > 0:
         combined_labelmap = sitk.ReadImage(os.path.join(latest_labelmap, "combined.nii.gz"))
         combined_array = sitk.GetArrayFromImage(combined_labelmap)
+        print("2D: ", latest_labelmap)
         return jsonify([createParcellationSlices(combined_array, image_masks, combined_labelmap, latest_labelmap)])
-    return jsonify([os.path.join(latest_labelmap, "combined.nii.gz")])
+    print("2D: ", latest_labelmap)
+    return jsonify(["combined.nii.gz"])
 
 if __name__ == '__main__':
     preprocess_brain_mesh()

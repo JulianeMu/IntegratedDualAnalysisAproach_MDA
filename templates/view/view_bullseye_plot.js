@@ -92,7 +92,10 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
 
     tippy_instances_bullseye = tippy(svg.selectAll("path").nodes(),{followCursor:true});
     tippy_instances_bullseye.forEach((x,i) => {
-        x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]].toFixed(2));
+        if (target.includes("wmh"))
+            x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]].toFixed(2));
+        else
+            x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]].toFixed(0));
     })
 
     // labels

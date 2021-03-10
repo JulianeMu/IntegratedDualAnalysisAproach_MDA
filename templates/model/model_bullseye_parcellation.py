@@ -3,7 +3,7 @@ import SimpleITK as sitk
 import os
 from scipy.stats import iqr
 
-def mapToBullseye(arr_bullseye, arr_lesion):
+def mapToBullseye(arr_bullseye, arr_lesion, absolute = False):
     #image = sitk.ReadImage(os.path.join("resources\\input\\0", "bullseye_wmparc.nii.gz"))
     #arr = sitk.GetArrayFromImage(image)
     #import matplotlib.pyplot as plt
@@ -34,8 +34,13 @@ def mapToBullseye(arr_bullseye, arr_lesion):
         wmh_volume = np.sum(arr_lesion[volume_mask] > 0) #label > 0 is considered wmh
         lobe = lobe_to_index[int(str(label)[:-1])] #brain lobes
         shell = int(str(label)[-1]) #bullseye rings
-        results[shell][lobe] = wmh_volume/total_volume
-        values.append(wmh_volume/total_volume)
+
+        if absolute:
+            results[shell][lobe] = np.float(wmh_volume)
+            values.append(np.float(wmh_volume))
+        else:
+            results[shell][lobe] = wmh_volume/total_volume
+            values.append(wmh_volume/total_volume)
         #print(shell,lobe,wmh_volume/total_volume)
     return results, np.max(values), np.min(values)
 

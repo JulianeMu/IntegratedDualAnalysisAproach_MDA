@@ -625,9 +625,13 @@ function preprocess_diverging_colortable(lines,title,target) {
         tickSize: 0,
         tickFormat: function (tick_label){
             tick_value = tick_label.split(" - ")
-            let num1 = Math.abs(Number(tick_value[0]))
-            let num2 = Math.abs(Number(tick_value[1]))
-            return "" + Math.min(num1,num2) + " - " + Math.max(num1,num2)
+            if (tick_value.length === 1){
+                return "" + Math.abs(Number(tick_value[0]))
+            } else {
+                let num1 = Math.abs(Number(tick_value[0]))
+                let num2 = Math.abs(Number(tick_value[1]))
+                return "" + Math.min(num1,num2) + " - " + Math.max(num1,num2)
+            }
         }
     })
 
@@ -658,9 +662,9 @@ function preprocess_diverging_combined_colortable(lines) {
         }
     })
 
-    combined_colortable["wmh"] = preprocess_diverging_colortable(wmh_data, "WMH Lesion Load", "#colormap_wmh");
-    combined_colortable["cmb"] = preprocess_diverging_colortable(cmb_data, "CMB Lesion Load", "#colormap_cmb");
-    combined_colortable["epvs"] = preprocess_diverging_colortable(epvs_data, "ePVS Lesion Load", "#colormap_epvs");
+    combined_colortable["wmh"] = preprocess_diverging_colortable(wmh_data, "WMH Lesion Load (Patient Count)", "#colormap_wmh");
+    combined_colortable["cmb"] = preprocess_diverging_colortable(cmb_data, "CMB Lesion Load (Patient Count)", "#colormap_cmb");
+    combined_colortable["epvs"] = preprocess_diverging_colortable(epvs_data, "ePVS Lesion Load (Patient Count)", "#colormap_epvs");
     preprocessing_swatches_colortable(combined_data);
 }
 
@@ -703,9 +707,11 @@ function parse(data) {
   if (data['meshlabelmap']['file'].length > 0) {
 
         for (let i = 0; i < data['meshlabelmap']['file'].length; i++){
-            if (data['meshlabelmap']["meshes"].length - 1 >= i) {
-                ren3d.remove(data['meshlabelmap']['meshes'][i]);
-                continue;
+            if (!(updated_labelmap === true && updated_volume === false)){
+                if (data['meshlabelmap']["meshes"].length - 1 >= i) {
+                    ren3d.remove(data['meshlabelmap']['meshes'][i]);
+                    continue;
+                }
             }
             if(data['meshlabelmap']['file'][i].name.toLowerCase().endsWith("spheres")){
                 createSphere(data, i)
@@ -1193,7 +1199,7 @@ function createTooltip(x,y,mesh_id){
 
     var tippy_instance = tippy("#tooltipTarget"+mesh_id,{
         content: "<strong>Name:</strong> "+mesh_name+"<br>"+
-            "<strong>Volume:</strong> "+volume,
+            "<strong>Volume:</strong> " + volume + " mm<sup>3</sup>",
         zIndex: 9999,
         trigger: "manual",
         sticky: true,

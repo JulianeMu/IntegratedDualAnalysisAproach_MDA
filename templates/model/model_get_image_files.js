@@ -136,11 +136,28 @@ function initialize_scene(callback) {
 
 
 
-    var tippy_instances_bullseye_legend_lobes = tippy(document.getElementById("id_BEP_legend_lobes_img"),{followCursor:true});
-    tippy_instances_bullseye_legend_lobes.setContent('Parcellation into Lobes <br> <b>Front:</b> Frontal <br> <b>Par:</b> Parietal <br> <b>Temp:</b> Temporal <br> <b>Occ:</b> Occipital <br> <b>BGIT:</b>  basal ganglia, thalami & infratentorial regions');
+    var tippy_instances_bullseye_legend_lobes = tippy(document.getElementById("id_BEP_legend_lobes_img"),{
+        content: "Parcellation into Lobes <br> <strong>Front:</strong> Frontal <br> <strong>Par:</strong> Parietal <br>"+
+            "<strong>Temp:</strong> Temporal <br> <strong>Occ:</strong> Occipital <br> <strong>BGIT:</strong>  Basal Ganglia, Infratentorial regions & Thalami",
+        //followCursor:true,
+        placement: 'right',
+        //zIndex: 9999,
+        //trigger: "manual",
+        //sticky: true,
+        allowHTML: true,
+        //offset: [0,-5]
+    });
 
-    var tippy_instances_bullseye_legend_shells = tippy(document.getElementById("id_BEP_legend_shells_img"),{followCursor:true});
-    tippy_instances_bullseye_legend_shells.setContent("testbubulove");
+    var tippy_instances_bullseye_legend_shells = tippy(document.getElementById("id_BEP_legend_shells_img"),{
+        content: "Subdivision of the lobes into <strong>4 equidistant layers</strong> based on the relative distance between the ventricles and the cortical grey matter.",
+        //followCursor:true,
+        placement: 'right',
+        //zIndex: 9999,
+        //trigger: "manual",
+        //sticky: true,
+        allowHTML: true,
+        //offset: [0,-5]
+    });
 }
 
 function initialize_scene2(callback) {
@@ -295,12 +312,28 @@ function initialize_scene2(callback) {
     add_heading("id_missing_lesionsdata_heading", "Lesions not occurring");
 
 
+    var tippy_instances_bullseye_legend_lobes = tippy(document.getElementById("id_BEP_legend_lobes_img"),{
+        content: "Parcellation into Lobes <br> <strong>Front:</strong> Frontal <br> <strong>Par:</strong> Parietal <br>"+
+            "<strong>Temp:</strong> Temporal <br> <strong>Occ:</strong> Occipital <br> <strong>BGIT:</strong>  Basal Ganglia, Infratentorial regions & Thalami",
+        //followCursor:true,
+        placement: 'right',
+        //zIndex: 9999,
+        //trigger: "manual",
+        //sticky: true,
+        allowHTML: true,
+        //offset: [0,-5]
+    });
 
-    var tippy_instances_bullseye_legend_lobes = tippy(document.getElementById("id_BEP_legend_lobes_img"),{followCursor:true});
-    tippy_instances_bullseye_legend_lobes.setContent('Parcellation into Lobes <br> <b>Front:</b> Frontal <br> <b>Par:</b> Parietal <br> <b>Temp:</b> Temporal <br> <b>Occ:</b> Occipital <br> <b>BGIT:</b>  basal ganglia, thalami & infratentorial regions');
-
-    var tippy_instances_bullseye_legend_shells = tippy(document.getElementById("id_BEP_legend_shells_img"),{followCursor:true});
-    tippy_instances_bullseye_legend_shells.setContent("testbubulove");
+    var tippy_instances_bullseye_legend_shells = tippy(document.getElementById("id_BEP_legend_shells_img"),{
+        content: "Subdivision of the lobes into <strong>4 equidistant layers</strong> based on the relative distance between the ventricles and the cortical grey matter.",
+        //followCursor:true,
+        placement: 'right',
+        //zIndex: 9999,
+        //trigger: "manual",
+        //sticky: true,
+        allowHTML: true,
+        //offset: [0,-5]
+    });
 }
 
 function initialize_scene_tmpwmh(callback) {

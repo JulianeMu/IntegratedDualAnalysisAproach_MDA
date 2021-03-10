@@ -52,17 +52,17 @@ function showMissingImageData (missing_wmh, missing_cmb, missing_epvs) {
     targetDiv.innerHTML = "";
     if (missing_wmh.length > 0) {
         let currentDiv = document.createElement("div");
-        currentDiv.innerHTML = "Missing WMH: " + missing_wmh.map(x => Number(x)).sort().join()
+        currentDiv.innerHTML = "<strong>WMH:</strong> " + missing_wmh.length // map(x => Number(x)).sort().join()
         targetDiv.appendChild(currentDiv)
     }
     if (missing_cmb.length > 0) {
         let currentDiv = document.createElement("div");
-        currentDiv.innerHTML = "Missing CMB: " + missing_cmb.map(x => Number(x)).sort().join()
+        currentDiv.innerHTML = "<strong>CMB:</strong> " + missing_cmb.length
         targetDiv.appendChild(currentDiv)
     }
     if (missing_epvs.length > 0) {
         let currentDiv = document.createElement("div");
-        currentDiv.innerHTML = "Missing ePVS: " + missing_epvs.map(x => Number(x)).sort().join()
+        currentDiv.innerHTML = "<strong>ePVS:</strong> " + missing_epvs.length
         targetDiv.appendChild(currentDiv)
     }
 }
@@ -71,7 +71,7 @@ function showMissingImageData (missing_wmh, missing_cmb, missing_epvs) {
 function showComparisonWithAll() {
     for (let column in column_values_initially){
         column = column_values_initially[column]
-        if (column.id === "id_index")
+        if (column.id === "id_pseudonym")
             return showSelectionComparison(column.column_values)
     }
 }
@@ -79,7 +79,7 @@ function showComparisonWithAll() {
 function showComparisonWithRemaining() {
     for (let column in column_values_initially){
         column = column_values_initially[column]
-        if (column.id === "id_index") {
+        if (column.id === "id_pseudonym") {
             var remainingIDs = column.column_values.filter((x) => {
                 return getPatientIDs().indexOf(x) === -1
             })
@@ -153,7 +153,7 @@ function loadFlair(patientID, onFileLoadedCallback){
     xhr.send();
 }
 
-function loadCombined(onFileLoadedCallback){
+function loadCombined(onFileLoadedCallback, patient = "tmp"){
     // NIFTI combined
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function(){
@@ -164,16 +164,16 @@ function loadCombined(onFileLoadedCallback){
             onFileLoadedCallback(f)
         }
     }
-    xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/tmp/combined", true);
+    xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/" + patient + "/combined", true);
     xhr.responseType = 'blob';
     xhr.send();
 }
 
-function loadMeshes(meshfilenames, onFileLoadedCallback){
+function loadMeshes(meshfilenames, onFileLoadedCallback, patient = "tmp"){
     // MESH
     meshfilenames.forEach(function (filename) {
         $.ajax({
-            url: "http://127.0.0.1:5000/get_mesh_file/tmp/"+filename,
+            url: "http://127.0.0.1:5000/get_mesh_file/" + patient + "/" + filename,
             type: "POST",
         }).done(function(filedata) {
             b = new Blob([filedata],{type:"text/plain"})
@@ -183,25 +183,55 @@ function loadMeshes(meshfilenames, onFileLoadedCallback){
     })
 }
 
-function showSingleSelection(){
-    activatePause()
-    addPatientLabelmaps(getPatientIDs(), function(filenames){
-        var total_files = filenames.length+2 //volume and combinedlabelmap
-        var loaded_files = []
-        var onFileLoaded = function (file) {
-            loaded_files.push(f)
-            if (loaded_files.length === total_files){
-                read(loaded_files)
-            }
-        }
-        loadFlair(getPatientIDs()[0], onFileLoaded)
-        loadCombined(onFileLoaded)
-        loadMeshes(filenames, onFileLoaded)
+function showSinglePatient(patientname, callback){
+    $.ajax({
+        url: "http://127.0.0.1:5000/create_meshes_of_patient/"+patientname,
+        type: "POST",
+        contentType: "application/json",
+    }).done(function (patientfilenames){
+        callback(patientfilenames)
     })
-    addBullseyeplots(getPatientIDs(), function(response){
+}
+
+function showSingleSelection(){
+    patientIDs = getPatientIDs()
+    if (patientIDs.length === 0)
+        return
+    activatePause()
+
+    if (patientIDs.length === 1) {
+        showSinglePatient(patientIDs[0], function(filenames){
+            var total_files = filenames.length+2 //volume and combinedlabelmap
+            var loaded_files = []
+            var onFileLoaded = function (file) {
+                loaded_files.push(f)
+                if (loaded_files.length === total_files){
+                    read(loaded_files)
+                }
+            }
+            loadFlair(patientIDs[0], onFileLoaded)
+            loadCombined(onFileLoaded, patientIDs[0])
+            loadMeshes(filenames, onFileLoaded, patientIDs[0])
+        })
+    } else {
+        addPatientLabelmaps(patientIDs, function(filenames){
+            var total_files = filenames.length+2 //volume and combinedlabelmap
+            var loaded_files = []
+            var onFileLoaded = function (file) {
+                loaded_files.push(f)
+                if (loaded_files.length === total_files){
+                    read(loaded_files)
+                }
+            }
+            loadFlair(patientIDs[0], onFileLoaded)
+            loadCombined(onFileLoaded)
+            loadMeshes(filenames, onFileLoaded)
+        })
+    }
+    addBullseyeplots(patientIDs, function(response){
         current_bullseyedata = response.bullseyedata
         showMissingImageData(response.missing_wmh, response.missing_cmb, response.missing_epvs)
-        if (getPatientIDs().length > 1) {
+        if (patientIDs.length > 1) {
             if (swapButtonPressed)
                 swapMedianIQR()
             showCohortBullseye(response.bullseyedata)
@@ -253,7 +283,7 @@ function showSingleBullseye(bullseyedata) {
     legend({
         target: "#bullseye_wmh_colorbar",
         color: d3.scaleSequential([wmh_data[2], wmh_data[1]],color_bullseye_wmh),
-        title: "WMH Lesion Load",
+        title: "WMH Lesion Load (Volume Ratio)",
         scaleGraphic: true,
         textColor: "black"
     })
@@ -261,7 +291,7 @@ function showSingleBullseye(bullseyedata) {
     legend({
         target: "#bullseye_cmb_colorbar",
         color: d3.scaleSequential([cmb_data[2], cmb_data[1]], color_bullseye_cmb),
-        title: "CMB Lesion Load",
+        title: "CMB Lesion Load (Lesion Count)",
         scaleGraphic: true,
         textColor: "black"
     })
@@ -269,7 +299,7 @@ function showSingleBullseye(bullseyedata) {
     legend({
         target: "#bullseye_epvs_colorbar",
         color: d3.scaleSequential([epvs_data[2], epvs_data[1]], color_bullseye_epvs),
-        title: "ePVS Lesion Load",
+        title: "ePVS Lesion Load (Lesion Count)",
         scaleGraphic: true,
         textColor: "black"
     })
@@ -303,7 +333,7 @@ function showCohortBullseye(bullseyedata) {
     legend({
         target: "#bullseye_wmh_cohort_colorbar",
         color: d3.scaleSequential([wmh_combined_min, wmh_combined_max], color_bullseye_wmh),
-        title: "WMH Lesion Load",
+        title: "WMH Lesion Load (Volume Ratio)",
         scaleGraphic: true,
         textColor: "black"
     })
@@ -311,7 +341,7 @@ function showCohortBullseye(bullseyedata) {
     legend({
         target: "#bullseye_cmb_cohort_colorbar",
         color: d3.scaleSequential([cmb_combined_min, cmb_combined_max], color_bullseye_cmb),
-        title: "CMB Lesion Load",
+        title: "CMB Lesion Load (Lesion Count)",
         scaleGraphic: true,
         textColor: "black"
     })
@@ -319,7 +349,7 @@ function showCohortBullseye(bullseyedata) {
     legend({
         target: "#bullseye_epvs_cohort_colorbar",
         color: d3.scaleSequential([epvs_combined_min, epvs_combined_max], color_bullseye_epvs),
-        title: "ePVS Lesion Load",
+        title: "ePVS Lesion Load (Lesion Count)",
         scaleGraphic: true,
         textColor: "black"
     })
@@ -402,7 +432,7 @@ function showSubBullseye(bullseyedata) {
     legend({
         target: "#bullseye_wmh_sub_colorbar",
         color: d3.scaleSequential([-wmh_max_abs, wmh_max_abs], color_bullseye_wmh_diverging),
-        title: "WMH Lesion Load Dominance",
+        title: "WMH Lesion Load Dominance (Volume Ratio)",
         subtitle1: "Subset 1",
         subtitle2: "Subset 2",
         height: 50 + 15,
@@ -414,7 +444,7 @@ function showSubBullseye(bullseyedata) {
     legend({
         target: "#bullseye_cmb_sub_colorbar",
         color: d3.scaleSequential([-cmb_max_abs, cmb_max_abs], color_bullseye_cmb_diverging),
-        title: "CMB Lesion Load Dominance",
+        title: "CMB Lesion Load Dominance (Lesion Count)",
         subtitle1: "Subset 1",
         subtitle2: "Subset 2",
         height: 50 + 15,
@@ -426,7 +456,7 @@ function showSubBullseye(bullseyedata) {
     legend({
         target: "#bullseye_epvs_sub_colorbar",
         color: d3.scaleSequential([-epvs_max_abs, epvs_max_abs], color_bullseye_epvs_diverging),
-        title: "ePVS Lesion Load Dominance",
+        title: "ePVS Lesion Load Dominance (Lesion Count)",
         subtitle1: "Subset 1",
         subtitle2: "Subset 2",
         height: 50 + 15,
@@ -467,22 +497,22 @@ function swapMedianIQR(){
         data[2] = data[5]
         data[5] = tmp
     }
-    if (current_bullseyedata.length === 3) {
-        if (current_bullseyedata[0].length === 3)
-            return
-        swap(current_bullseyedata[0])
-        swap(current_bullseyedata[1])
-        swap(current_bullseyedata[2])
-        showCohortBullseye(current_bullseyedata)
-    } else {
-        if (current_bullseyedata.length === 9) {
-            swap(current_bullseyedata[0])
-            swap(current_bullseyedata[1])
-            swap(current_bullseyedata[3])
-            swap(current_bullseyedata[4])
-            swap(current_bullseyedata[6])
-            swap(current_bullseyedata[7])
+    if (Object.keys(current_bullseyedata).length === 3) {
+        if (current_bullseyedata.wmh.length === 3 && current_bullseyedata.wmh[0].length === 6) {
+            swap(current_bullseyedata.wmh[0])
+            swap(current_bullseyedata.wmh[1])
+            swap(current_bullseyedata.cmb[0])
+            swap(current_bullseyedata.cmb[1])
+            swap(current_bullseyedata.epvs[0])
+            swap(current_bullseyedata.epvs[1])
             showSubBullseye(current_bullseyedata)
+        } else {
+            if (current_bullseyedata.wmh.length === 3)
+                return
+            swap(current_bullseyedata.wmh)
+            swap(current_bullseyedata.cmb)
+            swap(current_bullseyedata.epvs)
+            showCohortBullseye(current_bullseyedata)
         }
     }
 }
@@ -577,7 +607,7 @@ function show2DParcels() {
                 read([f])
             }
         }
-        xhr.open("POST", "http://127.0.0.1:5000/get_labelmap_of_patient/0/combined_parcellation", true);
+        xhr.open("POST", "http://127.0.0.1:5000/get_latest_parcellation/" + labelmap_filename[0].split(".")[0], true);
         xhr.responseType = 'blob';
         xhr.send();
     })

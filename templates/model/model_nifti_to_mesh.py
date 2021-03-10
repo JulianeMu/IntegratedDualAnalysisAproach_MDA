@@ -242,8 +242,10 @@ def combine_labelmaps(wmhImage, cmbImage, epvsImage, originalImage, outputpath, 
 # writes one OBJ per accumulated lesion load
 def create_layered_meshes(image, outputpath, filetype, basename = "add_", exportLayerMask = False):
     filenames = []
-    image = image.transpose(2,0,1)
+    image = image.transpose(2, 0, 1)
     layers = np.unique(image)
+    df = pd.DataFrame(columns=['Filename', 'Volume'])
+
     for layer in layers:
         if int(layer) == 0:
             continue
@@ -252,15 +254,23 @@ def create_layered_meshes(image, outputpath, filetype, basename = "add_", export
 
         if exportLayerMask:
             #sobel_image = generic_gradient_magnitude(layer_image, sobel) > 0
-            np.savez_compressed(os.path.join(outputpath, "layer_mask_" + str(layer)), image=layer_image)
+            np.savez_compressed(os.path.join(outputpath, "layer_mask_" + str(layer)), image=layer_image.transpose(1, 2, 0))
         verts, faces, normals, values = measure.marching_cubes(layer_image, 0.99)
         spacing = np.array([1,1,1]) #([1.2000000477, 0.9765999913, 3.0000000000])
         verts = verts*spacing
         verts[:, 1] = layer_image.shape[1] * spacing[1] - verts[:, 1]
+
+        mesh = trimesh.Trimesh(vertices = verts, faces = faces, process = False)  # calc volume and stuff
+        filename = basename + str(filetype) + "_" + str(int(layer))+".obj"
+        df = df.append({'Filename': filename, 'Volume': mesh.volume}, ignore_index=True)
+
         #filenames.extend(write_multiple_obj_files(verts, faces, normals, outputpath + "\\"+basename+"_wmh_" + str(int(layer))))
         #filenames.extend(write_multiple_obj_single_file(verts, faces, normals, outputpath + "\\"+basename+"_wmh_" + str(int(layer))))
-        write_single_obj_file(verts, faces, normals, os.path.join(outputpath, basename + str(filetype) + "_" + str(int(layer))+".obj"))
-        filenames.extend([basename + str(filetype) + "_" + str(int(layer))+".obj"])
+        write_single_obj_file(verts, faces, normals, os.path.join(outputpath, filename))
+        filenames.extend([filename])
+
+    df.to_csv(os.path.join(outputpath, filetype + '_lesiondata.csv'))
+    filenames.append(filetype + '_lesiondata.csv')
 
     return filenames
 
@@ -374,10 +384,10 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
         writeBinnedColormap(combinedOffset-epvsOffset, 'PuOr', "epvs", f, epvsOffset, True)
         writeBinnedColormap(combinedOffset-epvsOffset, 'PuOr', "epvs", f, epvsOffset, False)
 
-        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 255\n")
-        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 255\n")
-        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 255\n")
-        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 255\n")
+        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 196 30 171 255\n")
+        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 255 204 47 255\n")
+        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 51 181 255 255\n")
+        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 0 0 255\n")
         f.write(str(int(combinedOffset+5))+" combined_parcellation 255 255 255 255\n")
         global parcellation_colortable_value
         parcellation_colortable_value = int(combinedOffset+5)
@@ -433,10 +443,10 @@ def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, out
         writeBinnedColormap(epvsOffset-cmbOffset, 'Purples', "cmb", f, cmbOffset)
         writeBinnedColormap(combinedOffset-epvsOffset, 'Greens', "epvs", f, epvsOffset)
 
-        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 255 128 128 255\n")
-        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 201 255 229 255\n")
-        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 0 255 8 255\n")
-        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 237 163 255\n")
+        f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 196 30 171 255\n")
+        f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 255 204 47 255\n")
+        f.write(str(int(combinedOffset+3))+" combined_CMB_ePVS 51 181 255 255\n")
+        f.write(str(int(combinedOffset+4))+" combined_WMH_CMB_ePVS 255 0 0 255\n")
         f.write(str(int(combinedOffset+5))+" combined_parcellation 255 255 255 255\n")
         global parcellation_colortable_value
         parcellation_colortable_value = int(combinedOffset+5)
@@ -510,7 +520,7 @@ def createParcellationSlices(combined_array, image_masks, original_image, output
     writer.SetFileName(os.path.join(outputpath, "combined_parcellation.nii.gz"))
     writer.Execute(finalImageFile)
 
-    return os.path.join(outputpath, "combined_parcellation.nii.gz")
+    return "combined_parcellation.nii.gz"
 
 
 if __name__ == "__main__":

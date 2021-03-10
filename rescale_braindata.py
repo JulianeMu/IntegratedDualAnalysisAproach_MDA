@@ -21,6 +21,7 @@ def scale_single_image(filename):
         print(filename)
         img = sitk.ReadImage(filename)
         arr = sitk.GetArrayFromImage(img)
+        arr[mask == 0] = 0
         targetsize = np.array([256, 256, 256])
         sizeoffset = np.floor((targetsize-arr.shape)/2)
         sizeoffset = [int(sizeoffset[0]), int(sizeoffset[1]), int(sizeoffset[2])]
@@ -36,7 +37,9 @@ def scale_single_image(filename):
         writer.Execute(newimg)
 
 if __name__ == "__main__":
-    bepimg = sitk.ReadImage("D:/Uni/MA/IntegratedDualAnalysisAproach_MDA/resources/input/bullseye/bullseye_wmparc.nii.gz")
+    bepimg = sitk.ReadImage(os.path.join("resources", "input", "bullseye", "bullseye_wmparc.nii.gz"))
+    mask = sitk.ReadImage(os.path.join("resources", "input", "default", "mni_icbm152_t1_tal_nlin_asym_09c_mask.nii"))
+    mask = sitk.GetArrayFromImage(mask)
     patients = [name for name in os.listdir(os.path.join("resources", "input", "patients")) if os.path.isdir(os.path.join("resources", "input", "patients", name))]
     for patient in patients:
         for lesiontype in ["wmh", "cmb", "epvs"]:
@@ -45,3 +48,4 @@ if __name__ == "__main__":
             filename = get_volume_of_patient(patient, lesiontype)
             scale_single_image(filename)
     scale_single_image(os.path.join("resources", "input", "default", "CerebrA_brain.nii"))
+    scale_single_image(os.path.join("resources", "input", "default", "mni_icbm152_t1_tal_nlin_asym_09c.nii"))
