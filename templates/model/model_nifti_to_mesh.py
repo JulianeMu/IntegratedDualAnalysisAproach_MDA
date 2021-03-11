@@ -327,7 +327,7 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
     #combinedOffset = 30+epvsOffset
 
 
-    def writeBinnedColormap(numberOfColors, cmap, type, f, offset, minus):
+    def writeBinnedColormap(numberOfColors, cmap, type, f, offset, minus, cmap_offset = 1, invert_colorscale = False):
         if numberOfColors > 10:
             binSize = numberOfColors//3
             nrOfBins = math.ceil(numberOfColors/binSize)
@@ -350,10 +350,13 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
             else:
                 window_label = [str(i) for i in range(1, int(numberOfColors+1))]
 
-        cmap = cm.get_cmap(cmap, len(window_label)*2+1)
+        cmap = cm.get_cmap(cmap, len(window_label)*2+1+(2*cmap_offset))
 
         if minus:
-            colors = [cmap(i) for i in range(0, len(window_label))][::-1]
+            if invert_colorscale:
+                colors = [cmap(i+cmap_offset) for i in range(len(window_label)+1, len(window_label)*2+1)]
+            else:
+                colors = [cmap(i+cmap_offset) for i in range(0, len(window_label))][::-1]
 
             offset = offset * -1
             for i, label in list(enumerate(window_label))[::-1]:
@@ -364,7 +367,10 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
                     f.write(f"{str(offset+int(label))} {type}_{label} {' '.join([str(math.floor(x*255)) for x in colors[i]])}\n")
 
         else:
-            colors = [cmap(i) for i in range(len(window_label)+1, len(window_label)*2+1)]
+            if invert_colorscale:
+                colors = [cmap(i+cmap_offset) for i in range(0, len(window_label))][::-1]
+            else:
+                colors = [cmap(i+cmap_offset) for i in range(len(window_label)+1, len(window_label)*2+1)]
             for i, label in enumerate(window_label):
                 if len(label.split("_")) > 1:   #backwards compatible
                     for j in range(int(label.split("_")[0]), int(label.split("_")[1])+1):
@@ -381,8 +387,8 @@ def create_combined_diverging_colormap(cmbOffset, epvsOffset, combinedOffset, ou
         writeBinnedColormap(cmbOffset, "PiYG", "wmh", f, 0, False)
         writeBinnedColormap(epvsOffset-cmbOffset, "RdBu", "cmb", f, cmbOffset, True)
         writeBinnedColormap(epvsOffset-cmbOffset, "RdBu", "cmb", f, cmbOffset, False)
-        writeBinnedColormap(combinedOffset-epvsOffset, 'PuOr', "epvs", f, epvsOffset, True)
-        writeBinnedColormap(combinedOffset-epvsOffset, 'PuOr', "epvs", f, epvsOffset, False)
+        writeBinnedColormap(combinedOffset-epvsOffset, 'PuOr', "epvs", f, epvsOffset, True, invert_colorscale = True)
+        writeBinnedColormap(combinedOffset-epvsOffset, 'PuOr', "epvs", f, epvsOffset, False, invert_colorscale = True)
 
         f.write(str(int(combinedOffset+1))+" combined_WMH_CMB 196 30 171 255\n")
         f.write(str(int(combinedOffset+2))+" combined_WMH_ePVS 255 204 47 255\n")
@@ -403,7 +409,7 @@ def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, out
     #epvsOffset = 18+cmbOffset
     #combinedOffset = 100+epvsOffset
 
-    def writeBinnedColormap(numberOfColors, nameOfColormap, type, f, offset):
+    def writeBinnedColormap(numberOfColors, nameOfColormap, type, f, offset, cmap_offset = 1):
         if numberOfColors > 10:
             binSize = numberOfColors//5
             nrOfBins = math.ceil(numberOfColors/binSize)
@@ -415,25 +421,18 @@ def create_combined_summedup_colormap(cmbOffset, epvsOffset, combinedOffset, out
                 else:
                     window_label.append((bins[-1], numberOfColors))
             window_label = [str(x[0]) if len(x) == 1 or x[0] == x[1] else str(x[0]) + "_" + str(x[1]) for x in window_label]
-            #print("number of colors", numberOfColors, "binsize", binSize, window_label)
-            #window = np.round(np.linspace(1, numberOfColors, int(11)))
-            #window_label = [str(np.round(window[i])) + "-" + str(np.round(window[i+1]-1))  for i in range(len(window)-1)]
-            #window_center = [(float(i.split("-")[1]) + float(i.split("-")[0])) / 2 for i in window_label]
-            #window_label = [i.split("-")[1].split(".")[0] if np.floor(float(i.split("-")[1])) == np.floor(float(i.split("-")[0])) else i.split("-")[0].split(".")[0] + "_"+ i.split("-")[1].split(".")[0] for i in window_label]
-            cmap = cm.get_cmap(nameOfColormap, len(window_label))
-            #print(numberOfColors, window_center, window_label)
+            cmap = cm.get_cmap(nameOfColormap, len(window_label)+2*cmap_offset)
         else:
             window_label = [str(i) for i in range(1, int(numberOfColors+1))]
-            cmap = cm.get_cmap(nameOfColormap, len(window_label))
-            #print(numberOfColors, window_label)
+            cmap = cm.get_cmap(nameOfColormap, len(window_label)+2*cmap_offset)
 
         for i, label in enumerate(window_label):
             if len(label.split("_")) > 1:   #backwards compatible
                 for j in range(int(label.split("_")[0]), int(label.split("_")[1])+1):
-                    f.write(f"{str(offset+int(j))} {type}_{label} {' '.join([str(math.floor(x*255)) for x in cmap(i)])}\n")
+                    f.write(f"{str(offset+int(j))} {type}_{label} {' '.join([str(math.floor(x*255)) for x in cmap(i+cmap_offset)])}\n")
 
             else:
-                f.write(f"{str(offset+int(label))} {type}_{label} {' '.join([str(math.floor(x*255)) for x in cmap(i)])}\n")
+                f.write(f"{str(offset+int(label))} {type}_{label} {' '.join([str(math.floor(x*255)) for x in cmap(i+cmap_offset)])}\n")
 
     with open(outputpath+"/combinedcolortable.txt", "w") as f:
         f.write("# combined summedup" + " " + str(int(cmbOffset)) + " " + str(int(epvsOffset)) + " " + str(int(combinedOffset)) + "\n")

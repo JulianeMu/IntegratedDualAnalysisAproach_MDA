@@ -135,7 +135,6 @@ function updateLinkedViews() {
     window.console.log('Loading completed.');
 
     if (previousVolume === null && currentVolume !== null){
-
         //window.console.timeEnd('Loadtime');
         if (!guiLoaded){
             guiLoaded = true;
@@ -194,6 +193,8 @@ function updateLinkedViews() {
             sliceCor.update(currentVolume)
         }
     }
+
+    opacity3dVolume(global_opacity_volume*100);
 
     // if volume data exists
     for (let i = 0; i < _data.mesh.meshes.length; i++){
@@ -279,8 +280,8 @@ function updateWLSlider() {
 function createData() {
   // the data holder for the scene
   // includes the file object, file data and valid extensions for each object
-    if (typeof _data == "undefined")
-    {
+    if (typeof _data == "undefined") {
+        global_opacity_volume = 1;
         bullseyecell_to_parcellationmesh = {
             1: {},
             2: {},
@@ -709,16 +710,20 @@ function parse(data) {
         for (let i = 0; i < data['meshlabelmap']['file'].length; i++){
             if (!(updated_labelmap === true && updated_volume === false)){
                 if (data['meshlabelmap']["meshes"].length - 1 >= i) {
+                    if (data["meshlabelmap"]["file"][i] === null)
+                        continue;
                     ren3d.remove(data['meshlabelmap']['meshes'][i]);
+                    data["meshlabelmap"]["meshes"][i] = {"file": ""};
+                    data["meshlabelmap"]["file"][i] = null;
+                    data["meshlabelmap"]["filedata"][i] = null;
                     continue;
                 }
-            }
-            if(data['meshlabelmap']['file'][i].name.toLowerCase().endsWith("spheres")){
-                createSphere(data, i)
-            } else {
-
-                // we have a mesh
-                createMeshLabelmap(data, i);
+                if(data['meshlabelmap']['file'][i].name.toLowerCase().endsWith("spheres")){
+                    createSphere(data, i)
+                } else {
+                    // we have a mesh
+                    createMeshLabelmap(data, i);
+                }
             }
         }
         if (_data.meshlabelmap.wmh_threshold.length > 0){
@@ -752,6 +757,7 @@ function createVolume(data, i) {
     volume.pickable = false;
     volume.file = data['volume']['file'][i].name;
     volume.filedata = data['volume']['filedata'][i];
+    volume.opacity = global_opacity_volume;
     data.volume.volumes.push(volume);
     var colortableParent = volume;
 
@@ -786,6 +792,7 @@ function createLabelmap(data, i) {
     // load the most current volume file (only one should exist)
     labeledVolume.file = data['volume']['file'][data['volume']['file'].length - 1].name
     labeledVolume.filedata = data['volume']['filedata'][data['volume']['filedata'].length - 1];
+    labeledVolume.opacity = global_opacity_volume;
 
     // load the labelmap from the new file
     labeledVolume.labelmap.file = data['labelmap']['file'][i].name;
@@ -968,8 +975,6 @@ function onSliceNavigation() {
   jQuery('#green_slider').slider("option", "value",currentVolume.indexY);
 
   jQuery('#blue_slider').slider("option", "value",currentVolume.indexZ);
-
-
 };
 
 function switchToLabelmap(index) {
@@ -978,6 +983,16 @@ function switchToLabelmap(index) {
         ren3d.remove(currentVolume);
         previousVolume = currentVolume;
         currentVolume = _data.labelmap.volumes[index];
+        for (let i = 0; i < index; i++){
+            _data.labelmap.volumes[i] = null;
+            _data.labelmap.file[i] = null;
+            _data.labelmap.filedata[i] = null;
+        }
+        for (let i = 0; i < (_data.volume.volumes.length-1); i++){
+            _data.volume.volumes[i] = null;
+            _data.volume.file[i] = null;
+            _data.volume.filedata[i] = null;
+        }
         ren3d.add(currentVolume);
     } else {
         console.warn("labelmap with index ", index, "has not been loaded yet. so far ",
@@ -991,6 +1006,11 @@ function switchToVolume(index) {
         ren3d.remove(currentVolume);
         previousVolume = currentVolume;
         currentVolume = _data.volume.volumes[index];
+        for (let i = 0; i < index; i++){
+            _data.volume.volumes[i] = null;
+            _data.volume.file[i] = null;
+            _data.volume.filedata[i] = null;
+        }
         ren3d.add(currentVolume);
     } else {
         console.warn("volume with index ", index, "has not been loaded yet. so far ",

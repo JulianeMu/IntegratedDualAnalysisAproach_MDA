@@ -278,7 +278,7 @@ function opacity3dVolume(value) {
     }
 
     currentVolume.opacity = value/100;
-
+    global_opacity_volume = currentVolume.opacity;
     if (RT.linked) {
 
         clearTimeout(RT._updater);
@@ -475,6 +475,8 @@ function thresholdMeshLabelmaps(values, lesiontype){
         return
     for(let i = 0; i < _data.meshlabelmap.meshes.length; i++){
         let filename = _data.meshlabelmap.meshes[i].file //_data.meshlabelmap.file[i].name
+        if (filename === "")
+            continue;
         if(filename.includes(lesiontype)){
             if(filename.startsWith("multiple")){
                 _data.meshlabelmap.meshes[i].visible = values[1] >= 1 && values[0] <= 1

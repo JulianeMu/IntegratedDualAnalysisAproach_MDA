@@ -11,7 +11,7 @@ if __name__ == "__main__":
     table.rename(columns={'Unnamed: 0': 'id'}, inplace=True)
 
     # filter columns
-    selected_columns = ['id', "pseudonym", "Group012", "Mixed_Type"]
+    selected_columns = ['id', "pseudonym", "Group012", "Mixed_Type"]  #"Group_CAA_Mixed_CAA_like", "Group_HA_Mixed_HA_like"
     filtered_table = table[selected_columns]
 
     # rename first column
