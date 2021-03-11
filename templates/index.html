@@ -124,13 +124,13 @@
              <div class="buttons_class">
                  <div id="id_view_selection" class="class_heading"></div>
                  <div class="each_button_set_view_class">
-                     <button type = "button" onclick = "showSingleSelection()" style="width: fit-content; min-width: 50px; margin-right: 5px; float: left">
+                     <button type = "button" onclick = "showSingleSelection()" style="width: 100%; min-width: 50px; margin-right: 5px; float: left">
                          Show Selection
                      </button>
-                     <button type = "button" onclick = "showComparisonWithAll()" style="width: fit-content; min-width: 50px; margin-right: 5px; float: left">
+                     <button type = "button" onclick = "showComparisonWithAll()" style="width: 100%; min-width: 50px; margin-right: 5px; float: left">
                          Compare to All
                      </button>
-                     <button type = "button" onclick = "showComparisonWithRemaining()" style="width: fit-content; min-width: 50px; margin-right: 5px; float: left">
+                     <button type = "button" onclick = "showComparisonWithRemaining()" style="width: 100%; min-width: 50px; margin-right: 5px; float: left">
                          Compare to Remaining
                      </button>
                  </div>
@@ -138,48 +138,43 @@
              <div class="buttons_class">
                  <div id="id_compare_individual_selections" class="class_heading"></div>
                  <div class="each_button_set_view_class">
-                     <button type = "button" onclick = "storeIDs()" style="width: fit-content; min-width: 50px; margin-right: 5px">
+                     <button type = "button" onclick = "storeIDs()" style="width: 100%; min-width: 50px; margin-right: 5px">
                          Save Selection
                      </button>
-                     <button type = "button" onclick = "deleteIDs()" style="width: fit-content; min-width: 50px; margin-right: 5px">
+                     <button type = "button" onclick = "deleteIDs()" style="width: 100%; min-width: 50px; margin-right: 5px">
                          Delete Selection
                      </button>
-                     <button id="ShowTwoSelections" type = "button" onclick = "showComparisonNewSelection()" style="width: fit-content; min-width: 50px; margin-right: 5px" disabled>
+                     <button id="ShowTwoSelections" type = "button" onclick = "showComparisonNewSelection()" style="width: 100%; min-width: 50px; margin-right: 5px" disabled>
                          Compare to Saved Selection
                      </button>
                      <div id="id_saved_selection_heading" class="class_heading" style="margin-top: 10px"></div>
-                     <div id ="currentSavedSelection" style="color: black; margin-top: 5px; min-height: 50px"></div>
+                     <div id ="currentSavedSelection" style="color: black; margin-top: 5px; min-height: 150px"></div>
                  </div>
              </div>
              <div class="nonoccuringL_class">
                  <div id="id_missing_lesionsdata_heading" class="class_heading"></div>
                  <div class="each_button_set_view_class" style="color: black">
-                     <div id="id_show_missing_image_data" style="color: black"></div>
-                     <!--<b>WMH:</b> - <br>
-                     <div style="display: block; min-height: 10px"></div>
-                     <b>CMB:</b> - <br>
-                     <div style="display: block; min-height: 10px"></div>
-                     <b>ePVS:</b> - <br>-->
+                     <div id="id_show_missing_image_data" style="color: black; min-height: 50px"></div>
                      <!--<div style="display: block; min-height: 230px"></div>-->
                  </div>
              </div>
      </div>
-     <div id="center_view_right" style="width:15%; height:100%; float:left;">
+     <div id="center_view_right" style="width:13%; height:100%; float:left;">
          <div class="bullseye_class" style="height: 100%; width: calc(100% - 2*var(--padding)); margin-left: 0">
              <div id="id_bullseye_box" class="class_heading"></div>
              <div class="bullseye_set_view_class">
                  <div id="single_bullseye_view">
                      <div style="display: block; min-height: 2.5%"></div>
                      <div class="box">
-                         <div class="content" id="bullseye_wmh" style="width:50%"></div>
+                         <div class="content" id="bullseye_wmh"></div>
                      </div>
                      <div id="bullseye_wmh_colorbar" class="single_bullseye_legend" style="width: 70%; margin-left: 13%"></div>
                      <div class="box">
-                         <div class="content" id="bullseye_cmb" style="width:50%"></div>
+                         <div class="content" id="bullseye_cmb"></div>
                      </div>
                      <div id="bullseye_cmb_colorbar" class="single_bullseye_legend" style="width: 70%; margin-left: 13%"></div>
                      <div class="box">
-                         <div class="content" id="bullseye_epvs" style="width:50%"></div>
+                         <div class="content" id="bullseye_epvs"></div>
                      </div>
                      <div id="bullseye_epvs_colorbar" class="single_bullseye_legend" style="width: 70%; margin-left: 13%"></div>
                  </div>
@@ -202,7 +197,7 @@
                          <tr>
                              <td>
                                  <div class="box">
-                                     <div class="content" id="bullseye_wmh_cohort" style="width:70%"></div>
+                                     <div class="content" id="bullseye_wmh_cohort"></div>
                                  </div>
                              </td>
                              <td style="vertical-align: bottom">
@@ -217,7 +212,7 @@
                          <tr>
                              <td>
                                  <div class="box">
-                                     <div class="content" id="bullseye_cmb_cohort" style="width:70%"></div>
+                                     <div class="content" id="bullseye_cmb_cohort"></div>
                                  </div>
                              </td>
                              <td style="vertical-align: bottom">
@@ -232,7 +227,7 @@
                          <tr>
                              <td>
                                  <div class="box">
-                                     <div class="content" id="bullseye_epvs_cohort" style="width:70%"></div>
+                                     <div class="content" id="bullseye_epvs_cohort"></div>
                                  </div>
                              </td>
                              <td style="vertical-align: bottom">
@@ -395,7 +390,7 @@
              </div>
          </div>
      </div>
-     <div id="right_view" style="width:30%; height:100%; float:left">
+     <div id="right_view" style="width:32%; height:100%; float:left">
          <div id="pause" style="top: 0; display: none; position: absolute; width: 100%; height: 100%; z-index: 100000; background-color: rgba(128, 128, 128, 0.8);"> </div>
          <div id='3d' class='threeDRenderer' style="width:100%; height:66%;">
              <div id="colormap_epvs" style="position: absolute; left: 10px; bottom: 5px"></div>

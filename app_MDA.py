@@ -53,8 +53,8 @@ id_data_type__date = "date"
 # merged_all = pd.read_csv("resources/Repro_FastSurfer_run-01_cleaned.csv", keep_default_na=False, na_values=[""])
 
 # synthetic
-print("test: ", os.getcwd())
-merged_all = pd.read_csv(os.path.join("resources", "CSVD_Cohort_Minimal.csv"), keep_default_na=False, na_values=[""]) #synthetic_dates_missingness2_small.csv
+print(os.getcwd())
+merged_all = pd.read_csv(os.path.join("resources", "test.csv"), keep_default_na=False, na_values=[""]) #synthetic_dates_missingness2_small.csv
 
 #merged_all = pd.read_csv("resources/clinical_data_imputed.csv", keep_default_na=False, na_values=[""])
 
