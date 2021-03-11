@@ -22,7 +22,7 @@ if __name__ == "__main__":
     filtered_table["id"] = range(0, len(filtered_table))
 
     # write csv
-    filtered_table.to_csv(os.path.join("resources", "test.csv"), index=False)
+    filtered_table.to_csv(os.path.join("resources", "CSVD_Cohort_Minimal.csv"), index=False)
 
 
 

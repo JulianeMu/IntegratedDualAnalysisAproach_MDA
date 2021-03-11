@@ -59,9 +59,8 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
         .join('path');
 
     paths._groups[0].forEach((x) => bullseye_paths.push(x))
-
     paths.attr("d", d => this_arc(d[0]))
-    .attr('fill', (d, i) => ((typeof colorData !== "undefined") ? colorScale(colorData[d[1]][d[2]]) : "white"))
+    .attr('fill', (d, i) => ((typeof colorData !== "undefined") ? colorScale(colorData[d[1]][d[2]]) : colorScale(0)))
     .attr('stroke', 'grey')
     .on("click", (d,i) => {
         console.log(d[1],d[2]);
@@ -94,12 +93,12 @@ function create_bullseye(target, colorData, min, max, colorScheme, labels = true
     tippy_instances_bullseye.forEach((x,i) => {
         if (target.includes("wmh")) {
             if (typeof colorData !== "undefined")
-                x.setContent(Math.abs(colorData[x.reference.__data__[1]][x.reference.__data__[2]].toFixed(2)));
+                x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]].toFixed(2));
             else
                 x.setContent("na");
         } else {
             if (typeof colorData !== "undefined")
-                x.setContent(Math.abs(colorData[x.reference.__data__[1]][x.reference.__data__[2]].toFixed(0)));
+                x.setContent(colorData[x.reference.__data__[1]][x.reference.__data__[2]].toFixed(0));
             else
                 x.setContent("na");
         }

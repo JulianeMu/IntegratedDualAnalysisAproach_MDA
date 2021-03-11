@@ -563,6 +563,9 @@ function adjustTable() {
         document.getElementById("sub_table_header_subset2").style.width = "0"
         document.getElementById("sub_table_header_subset2").style.display = "none"
         document.getElementById("sub_table_header_subsetempty").style.width = "100%"
+        document.getElementById("bullseye_wmh_sub").style.width = "50%"
+        document.getElementById("bullseye_cmb_sub").style.width = "50%"
+        document.getElementById("bullseye_epvs_sub").style.width = "50%"
     } else{ //empty
     }
     $("tbody","#id_bullseye_table_sub").find("tr").each((i,x) => {

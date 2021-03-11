@@ -400,6 +400,7 @@ input:checked + .slider:before {
     bottom: 0;
     right: 0;
     pointer-events: fill;
+    with: 50%;
 }
 
 #single_bullseye_view{
