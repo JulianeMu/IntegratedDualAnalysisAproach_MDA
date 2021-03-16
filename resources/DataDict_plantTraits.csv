@@ -1,0 +1,33 @@
+﻿Field,Description
+ID,Identity
+Diaspore mass (mg),Mass of diaspore
+Seed bank longevity,Longevity of seed bank
+Flowering duration,Duration of flowering
+Plant height,Height of plant
+Time of first flowering,time of first flowering
+Mycorrhizas,Mycorrhizas description
+Aerial vegetative propagation,Propagation of aerial vegetative
+Underground vegetative propagation,Propagation of underground vegetative
+Self pollinating,Pollinating of self
+Insect pollinating,Pollinating of insect
+Wind pollinating,Pollinating of wind
+Woody,Woody description
+Thorny,Thorny description
+Rosette,Rosette description
+Semi-rosette,semi rosette
+Leafy,Leafy description
+Summer annual,Annual of summer
+Winter annual,Annual of winter
+Monocarpic,Monocarpic description
+Polycarpic,Polycarpic description
+Seasonal aestival,Aestival of seasonal
+Seasonal hibernal,Hibernal of seasonal
+Seasonal vernal,Vernal of seasonal
+Evergreen,Evergreen description
+Partial evergreen,Evergreen of partial
+Elaiosome fruit disp,Disp of elaiosome fruit
+Endozoochorous fruit disp,Disp of endozoochorous fruit
+Epizoochorous fruit disp,Disp of epizoochorous fruit
+Aquatic fruit disp,Disp of aquatic fruit
+Wind fruit disp,Disp of wind fruit
+Unspecialized fruit disp,Disp of unspecialized fruit

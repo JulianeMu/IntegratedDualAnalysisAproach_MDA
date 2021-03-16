@@ -1,0 +1,12 @@
+new data dictionary:
+* add data dictionary csv to /resources
+* refer resources/DataDict_Empty.csv file for the format 
+* in app_MDA.py line 43 specify path to your csv file
+
+If no data dictionary is available and you just need the column name while hovering over, 
+* in app_MDA.py line 43 specify path to DataDict_Empty.csv file
+* Its just an empty file with column headers field and description
+
+Sample data dictionary file for plantTraits.csv added in resources as ‘DataDict_plantTraits’ for reference. 
+
+
