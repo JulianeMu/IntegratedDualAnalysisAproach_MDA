@@ -39,8 +39,8 @@ id_data_type__date = "date"
 # merged_all = pd.read_csv("resources/Repro_FastSurfer_run-01_cleaned.csv", keep_default_na=False, na_values=[""])
 
 # synthetic
-merged_all = pd.read_csv("resources/MRT_Analyse.csv", keep_default_na=False, na_values=[""], encoding='Latin-1', low_memory=False)
-data_desc = pd.read_csv("resources/DataDict_Empty.csv",keep_default_na=False, na_values=[""])
+merged_all = pd.read_csv("resources/plantTraits.csv", keep_default_na=False, na_values=[""], encoding='Latin-1', low_memory=False)
+data_desc = pd.read_csv("resources/DataDict_plantTraits.csv",keep_default_na=False, na_values=[""])
 
 merged_all = merged_all.loc[:, ~merged_all.columns.duplicated()]  # remove duplicate rows
 
