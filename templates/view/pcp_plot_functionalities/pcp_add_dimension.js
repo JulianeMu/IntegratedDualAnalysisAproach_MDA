@@ -100,7 +100,12 @@ function add_dimensions() {
                     } else return name;
                 })
                 .attr('data-tippy-content', function (d, i) {
-                    return y_scale_pcp_new[dim_split].header;
+                    console.log(description_of_columns_plot);
+                    if(description_of_columns_plot[y_scale_pcp_new[dim_split].header]){
+                        return description_of_columns_plot[y_scale_pcp_new[dim_split].header];
+                    }else{
+                        return y_scale_pcp_new[dim_split].header;
+                    }
                 })
                 .on('click', function (d) {
                     highlight_circles(dim_split);

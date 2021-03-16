@@ -10,9 +10,9 @@ function initialize() {
  * initialize model
  */
 function initialize_model() {
+
     load_csv(function (response) {
         if (response) {
-
             color_scale_descriptive_statistics.domain([0, column_values_cleaned.length-1]);
 
             initialize_dimension_scatterplot(id_likelihood_of_correlation + id_content_ending, likelihood_of_correlation_plot_preferences.datatype, statistics_key_overall_deviation, null, true);
@@ -43,6 +43,15 @@ function initialize_model() {
 
         }
     });
+
+    load_description_csv(function (response) {
+        if (response) {
+            console.log(desciption_of_columns);
+
+            set_description_data(desciption_of_columns);
+        }
+    });
+
 }
 
 /**

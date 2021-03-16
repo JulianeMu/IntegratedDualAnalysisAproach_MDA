@@ -1,4 +1,3 @@
-
 function initialize_items_plot_new(parent_div_id) {
 
     color_scale_loading = d3.scaleLinear()
@@ -803,4 +802,8 @@ function update_after_swapping(last_dim_id, current_dimension) {
 
     brushend(current_dimension.id);
     rotateCarousel(true);
+}
+
+function set_description_data(description_of_columns) {
+    description_of_columns_plot = description_of_columns;
 }

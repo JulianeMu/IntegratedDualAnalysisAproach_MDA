@@ -1,23 +1,16 @@
-import json
 import time
 from datetime import datetime
 
 import jsonpickle
-import sys
-import os
 import numpy
 import pandas as pd
 from flask import Flask, request, jsonify
-from joblib import Parallel, delayed
-import multiprocessing
-
 import compute_descriptive_statistics_MDA as cds
 import global_variables as gv
 try:
     import get_data_from_server
 except ImportError:
     pass;
-from collections import namedtuple
 
 start_time = time.time()
 
@@ -27,12 +20,27 @@ id_data_type__categorical = "string"
 id_data_type__numerical = "number"
 id_data_type__date = "date"
 
-#merged_all = get_data_from_server.get_dataframe_from_server()
+
+# merged_all = get_data_from_server.get_dataframe_from_server()
+
+# csv_file_name_missing_values = 'clinical_data_whole.csv'
+# merged_all.to_csv(csv_file_name_missing_values, index=False)
+
+# missingness = merged_all.isnull().astype(int).sum()
+# print(missingness)
+# header = merged_all.head()
+# abc = merged_all.head()
+# abc['missing count'] = missingness
+# csv_file_name_missing_values = 'clinical_data_missingness.csv'
+# missingness.to_csv(csv_file_name_missing_values, index=False)
+
+
+# FALK
+# merged_all = pd.read_csv("resources/Repro_FastSurfer_run-01_cleaned.csv", keep_default_na=False, na_values=[""])
 
 # synthetic
-merged_all = pd.read_csv(os.path.dirname(sys.argv[0]) + os.path.sep + "resources" + os.path.sep +
-                         "synthetic_dates_missingness2.csv", keep_default_na=False, na_values=[""])
-
+merged_all = pd.read_csv("resources/MRT_Analyse.csv", keep_default_na=False, na_values=[""], encoding='Latin-1', low_memory=False)
+data_desc = pd.read_csv("resources/DataDict_Empty.csv",keep_default_na=False, na_values=[""])
 
 merged_all = merged_all.loc[:, ~merged_all.columns.duplicated()]  # remove duplicate rows
 
@@ -59,6 +67,11 @@ class ColumnElementsClass(object):
         self.key_datatype_change = False
         self.key_removed_during_data_formatting = []
         self.descriptive_statistics = descriptive_statistics
+
+class DescriptionElementsClass(object):
+    def __init__(self, coloumn_key, coloum_description):
+        self.column_key = coloumn_key
+        self.column_description = coloum_description
 
 
 # extra chars are not valid for json strings
@@ -88,6 +101,7 @@ class DescriptiveStatisticsClass(object):
                                                                                        data_type, column_id)
         self.stDev = stdev
         self.varNC = varnc
+        #print(column_used,column_id)
         self.number_of_modes = cds.get_number_of_modes(column_used, data_type, column_id)
         self.missing_values_percentage = len(
             [x for x in currentcol_descriptive if (str(x) == 'nan' or str(x) == "None")]) / len(
@@ -149,7 +163,7 @@ def normalize_values(current_col_for_normalization, current_data_type, col_id):
             elif min_val == max_val:
                 normalized_values.append(row)
             else:
-                normalized_values.append((row - min_val) / (max_val - min_val))
+                normalized_values.append((numpy.subtract(row,min_val,dtype=numpy.float32))/ (numpy.subtract(max_val,min_val,dtype=numpy.float32)))
 
         current_col_normalized_in_function = pd.Series(normalized_values)
         current_col_normalized_in_function = current_col_normalized_in_function.rename(col_id)
@@ -178,7 +192,6 @@ def get_data_initially_formatted(index):
                 date_in_milisec = current_col_parallel[i]
 
                 try:
-                    #print(str(number))
                     date_in_milisec = datetime.strptime(str(number), "%d.%m.%Y").timestamp() * 1000
                     this_data_type_parallel = id_data_type__date
 
@@ -215,18 +228,18 @@ def get_data_initially_formatted(index):
 
     return col_description
 
+def get_description_data_formatted(index):
+    current_col_parallel = data_desc[index]
+    col_description = DescriptionElementsClass(get_column_label(current_col_parallel.name),
+                                               current_col_parallel.tolist())
+    return col_description
 
-#[sqrt(i ** 2) for i in range(10)]
-#Parallel(n_jobs=2)(delayed(sqrt)(i ** 2) for i in range(10))
-# gv.data_initially_formatted = [get_data_initially_formatted(i) for i in merged_all.columns]
-num_cores = multiprocessing.cpu_count()
 
-gv.data_initially_formatted = Parallel(n_jobs=num_cores)(delayed(get_data_initially_formatted)(i) for i in merged_all.columns)
+gv.data_initially_formatted = [get_data_initially_formatted(i) for i in merged_all.columns]
+gv.description_data_initially_formatted = [get_description_data_formatted(i) for i in data_desc.columns]
 
 gv.include_missing_values = False
-gv.data_initially_formatted_no_missing_values = Parallel(n_jobs=num_cores)(delayed(get_data_initially_formatted)(i) for i in merged_all.columns)
-
-#gv.data_initially_formatted_no_missing_values = [get_data_initially_formatted(i) for i in merged_all.columns]
+gv.data_initially_formatted_no_missing_values = [get_data_initially_formatted(i) for i in merged_all.columns]
 
 gv.include_missing_values = True
 
@@ -240,30 +253,12 @@ def main_interface():
 
     return transform([gv.data_initially_formatted, gv.data_initially_formatted_no_missing_values])
 
+@app.route('/desc_csv/', methods=["POST"])
+def get_description():
 
-def customStudentDecoder(studentDict):
-    return namedtuple('X', studentDict.keys())(*studentDict.values())
+    gv.request_data_list = []
 
-
-@app.route('/update_thresholds/', methods=["POST"])
-def update_thresholds():
-
-    request_thresholds = request.get_json()
-
-    gv.coefficient_of_unalikeability_threshold = request_thresholds[0]
-    gv.modes_threshold = request_thresholds[1]
-
-    filtered_values = list(request_thresholds[2])
-
-    gv.data_initially_formatted = [cds.update_coeff_unalikeability_modes(i) for i in gv.data_initially_formatted]
-    gv.data_initially_formatted_no_missing_values = [cds.update_coeff_unalikeability_modes(i) for i in
-                                                     gv.data_initially_formatted_no_missing_values]
-
-    filtered_values = [cds.update_coeff_unalikeability_modes_dict(i) for i in filtered_values]
-
-    filtered_values = [cds.update_coeff_unalikealibiity_modes_deviations(i) for i in filtered_values]
-
-    return transform([gv.data_initially_formatted, gv.data_initially_formatted_no_missing_values, filtered_values])
+    return transform([gv.description_data_initially_formatted])
 
 
 @app.route('/toggle_include_missing_values/', methods=["POST"])
@@ -284,28 +279,6 @@ def compute_deviations_and_get_current_values():
     return comp_deviations(request_data_list)
 
 
-def comp_deviation_in_loop (data_initial, request_data_list, data_to_use):
-    new_values = list([data_initial.column_values[item_index] for
-                       item_index in range(len(data_initial.column_values)) if item_index in request_data_list])
-
-    new_values_normalized = list([data_initial.descriptive_statistics.normalized_values[
-                                      item_index] for
-                                  item_index in range(len(data_initial.column_values)) if item_index in request_data_list])
-
-    col_descriptive_statistics_new = DescriptiveStatisticsClass(new_values_normalized, data_initial.data_type,
-                                                                data_initial.id)
-    col_descriptive_statistics_new = cds.get_descriptive_statistics_deviations(col_descriptive_statistics_new,
-                                                                               [x for x in
-                                                                                data_to_use if
-                                                                                x.id == data_initial.id][
-                                                                                   0].descriptive_statistics)
-
-    col_description_new = ColumnElementsClass(data_initial.header, data_initial.id,
-                                              data_initial.data_type, new_values, col_descriptive_statistics_new)
-
-    return col_description_new
-
-
 def comp_deviations(request_data_list):
     start_time_deviations = time.time()
 
@@ -316,7 +289,26 @@ def comp_deviations(request_data_list):
     if not gv.include_missing_values:
         data_to_use = gv.data_initially_formatted_no_missing_values
 
-    data_initially_formatted_new = Parallel(n_jobs=num_cores)(delayed(comp_deviation_in_loop)(data_initial, request_data_list, data_to_use) for data_initial in data_to_use)
+    for data_initial in data_to_use:
+        new_values = list([data_initial.column_values[item_index] for
+                           item_index in range(len(data_initial.column_values)) if item_index in request_data_list])
+
+        new_values_normalized = list([data_initial.descriptive_statistics.normalized_values[
+                                          item_index] for
+                                      item_index in range(len(data_initial.column_values)) if item_index in request_data_list])
+
+        col_descriptive_statistics_new = DescriptiveStatisticsClass(new_values_normalized, data_initial.data_type,
+                                                                    data_initial.id)
+        col_descriptive_statistics_new = cds.get_descriptive_statistics_deviations(col_descriptive_statistics_new,
+                                                                                   [x for x in
+                                                                                    data_to_use if
+                                                                                    x.id == data_initial.id][
+                                                                                       0].descriptive_statistics)
+
+        col_description_new = ColumnElementsClass(data_initial.header, data_initial.id,
+                                                  data_initial.data_type, new_values, col_descriptive_statistics_new)
+
+        data_initially_formatted_new.append(col_description_new)
 
     print("--- %s seconds ---" % (time.time() - start_time_deviations))
 

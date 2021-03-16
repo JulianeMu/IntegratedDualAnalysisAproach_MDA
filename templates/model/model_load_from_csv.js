@@ -61,3 +61,29 @@ function load_csv(callback) {
         callback(true)
     });
 }
+
+/**
+ * load data from csv
+ * @param callback
+ */
+function load_description_csv(callback) {
+    d3.selectAll('#' + id_view).style('pointer-events', 'none');
+
+    $.ajax({
+        url: "http://127.0.0.1:5000/desc_csv/",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({"message": "test"})
+    }).done(function(data) {
+        //Data format should be taken care later at the backend
+        let description_raw_data = JSON.parse(data)[0];
+        let field_array = description_raw_data[0].column_description;
+        let value_array = description_raw_data[1].column_description;
+
+        for (let i = 0; i < field_array.length; i++) {
+            desciption_of_columns[field_array[i]] = value_array[i];
+        }
+
+        callback(true);
+    });
+}

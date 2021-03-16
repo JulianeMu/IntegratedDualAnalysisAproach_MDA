@@ -1,4 +1,3 @@
-
 const qualitative_bar_height = 6;
 const qualitative_bar_max_width = 50;
 
@@ -83,3 +82,5 @@ let color_scale_loading;
 
 const min_stroke_width_group = 2;
 const max_stroke_width_group = 7;
+
+let description_of_columns_plot = {};
